@@ -8,7 +8,7 @@ import net.minecraft.util.Identifier;
 
 public class AngelRegistry extends SimpleDatapackRegistry<Angel> {
     private static final AngelRegistry instance = new AngelRegistry();
-    public static final Identifier TEXTURE = LoqorsWeepingAngels.id("textures/entity/angels/imperial/stone_angel.png");
+    public static final Identifier TEXTURE = LoqorsWeepingAngels.id("textures/entity/angel/stone_angel.png");
     public AngelRegistry() {
         super(Angel::fromInputStream, Angel.CODEC, "entities/angel/variants", "entities/angel/variants", true,
                 LoqorsWeepingAngels.MOD_ID);
