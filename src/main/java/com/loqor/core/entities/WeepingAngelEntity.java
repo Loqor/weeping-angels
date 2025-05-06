@@ -3,11 +3,14 @@ package com.loqor.core.entities;
 import com.loqor.core.angels.Angel;
 import com.loqor.core.angels.AngelRegistry;
 import com.mojang.serialization.Dynamic;
+import dev.drtheo.scheduler.api.Scheduler;
+import dev.drtheo.scheduler.api.TimeUnit;
 import net.minecraft.block.WearableCarvedPumpkinBlock;
 import net.minecraft.entity.*;
 import net.minecraft.entity.ai.TargetPredicate;
 import net.minecraft.entity.ai.brain.Brain;
 import net.minecraft.entity.ai.brain.MemoryModuleType;
+import net.minecraft.entity.ai.brain.Schedule;
 import net.minecraft.entity.ai.control.BodyControl;
 import net.minecraft.entity.ai.control.JumpControl;
 import net.minecraft.entity.ai.control.LookControl;
@@ -112,7 +115,11 @@ public class WeepingAngelEntity extends HostileEntity {
             }
             int randomX = player.getBlockX() * this.getWorld().getRandom().nextBetween(-1500, 1500);
             int randomZ = player.getBlockZ() * this.getWorld().getRandom().nextBetween(-1500, 1500);
-            player.teleport(randomX, this.getWorld().getTopY() + 1, randomZ);
+            player.teleport(randomX, player.getWorld().getChunk(ChunkSectionPos.getSectionCoord(randomX), ChunkSectionPos.getSectionCoord(randomZ))
+                    .sampleHeightmap(Heightmap.Type.MOTION_BLOCKING_NO_LEAVES, randomX & 15, randomZ & 15) + 1, randomZ);
+            Scheduler.get().runTaskLater(() ->
+                    player.playSound(SoundEvents.ITEM_CHORUS_FRUIT_TELEPORT, 1.0F, 2.0F),
+                    TimeUnit.SECONDS, 1);
         }
         super.onAttacking(target);
     }
@@ -234,7 +241,8 @@ public class WeepingAngelEntity extends HostileEntity {
                     bl2 = true;
                     boolean isLookingAtMe = this.isEntityLookingAtMe(
                             playerEntity, 0.5, false,
-                            this.getEyeY(), this.getY() + 0.5 * this.getScaleFactor(), (this.getEyeY() + this.getY()) / 2.0);
+                            this.getEyeY(), this.getY() + 0.5 * this.getScaleFactor(),
+                            (this.getEyeY() + this.getY()) / 2.0);
 
                     if (isLookingAtMe) {
                         if (bl) this.deactivate();
