@@ -185,17 +185,12 @@ public class WeepingAngelEntity extends HostileEntity {
     public boolean damage(DamageSource damageSource, float amount) {
         if (damageSource.getSource() instanceof PlayerEntity player) {
             ItemStack stack = player.getMainHandStack();
-            if (stack.getItem() instanceof PickaxeItem) {
+            if (stack.getItem() instanceof PickaxeItem || amount > 50000) {
                 return super.damage(this.getWorld().getDamageSources().inWall(), amount);
             }
         }
         return false;
     }
-
-    /*@Override
-    public boolean canHit() {
-        return this.isntStone();
-    }*/
 
     @Override
     protected void mobTick() {
@@ -250,9 +245,14 @@ public class WeepingAngelEntity extends HostileEntity {
     }
 
     @Override
-    protected void dropEquipment(DamageSource source, int lootingMultiplier, boolean allowDrops) {
-        super.dropEquipment(source, lootingMultiplier, allowDrops);
-        Entity entity = source.getAttacker();
+    protected boolean shouldDropLoot() {
+        return true;
+    }
+
+    @Override
+    protected void dropLoot(DamageSource damageSource, boolean causedByPlayer) {
+        super.dropLoot(damageSource, causedByPlayer);
+        Entity entity = damageSource.getAttacker();
         if (entity instanceof PlayerEntity player) {
             ItemStack stack = player.getMainHandStack();
             if (stack.getItem() instanceof PickaxeItem) {
