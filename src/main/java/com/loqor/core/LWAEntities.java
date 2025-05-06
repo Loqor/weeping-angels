@@ -12,6 +12,6 @@ import net.minecraft.world.Heightmap;
 public class LWAEntities implements EntityContainer {
     public static final EntityType<WeepingAngelEntity> WEEPING_ANGEL = FabricEntityTypeBuilder.Mob.createMob()
             .spawnGroup(SpawnGroup.MONSTER).entityFactory(WeepingAngelEntity::new)
-            .dimensions(EntityDimensions.fixed(1f, 1f)).spawnRestriction(SpawnRestriction.Location.NO_RESTRICTIONS,
+            .dimensions(EntityDimensions.fixed(0.6F, 1.99F)).spawnRestriction(SpawnRestriction.Location.NO_RESTRICTIONS,
                     Heightmap.Type.MOTION_BLOCKING_NO_LEAVES, WeepingAngelEntity::canSpawn).spawnableFarFromPlayer().build();
 }

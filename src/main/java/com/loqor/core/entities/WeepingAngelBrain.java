@@ -53,7 +53,7 @@ public class WeepingAngelBrain {
                         LookAtMobWithIntervalTask.follow(8.0F, UniformIntProvider.create(30, 60)),
                         new RandomTask<>(ImmutableList.of(
                                 Pair.of(StrollTask.create(0.3F), 2),
-                                Pair.of(GoTowardsLookTargetTask.create(0.3F, 3), 2), // Ensure GoToLookTargetTask is defined and imported
+                                Pair.of(GoTowardsLookTargetTask.create(0.3F, 3), 2),
                                 Pair.of(new WaitTask(30, 60), 1)
                         ))
                 )

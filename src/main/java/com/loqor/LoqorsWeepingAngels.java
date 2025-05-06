@@ -1,6 +1,7 @@
 package com.loqor;
 
 import com.loqor.core.LWAEntities;
+import com.loqor.core.LWAItems;
 import com.loqor.core.entities.WeepingAngelEntity;
 import dev.amble.lib.container.RegistryContainer;
 import dev.amble.lib.register.AmbleRegistries;
@@ -22,6 +23,7 @@ public class LoqorsWeepingAngels implements ModInitializer {
 	@Override
 	public void onInitialize() {
 		RegistryContainer.register(LWAEntities.class, MOD_ID);
+		RegistryContainer.register(LWAItems.class, MOD_ID);
 
 		registerEntityAttributes();
 	}

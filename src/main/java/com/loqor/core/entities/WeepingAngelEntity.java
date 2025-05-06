@@ -154,14 +154,15 @@ public class WeepingAngelEntity extends HostileEntity {
         } else {
             boolean bl2 = false;
             for (PlayerEntity playerEntity : list) {
-                if (/*this.canTarget(playerEntity) && */!this.isTeammate(playerEntity)) {
+                if (this.canTarget(playerEntity) && !this.isTeammate(playerEntity)) {
                     bl2 = true;
                     boolean isLookingAtMe = this.isEntityLookingAtMe(
                             playerEntity, 0.5, false, true,
                             this.getEyeY(), this.getY() + 0.5 * this.getScaleFactor(), (this.getEyeY() + this.getY()) / 2.0);
 
                     if (isLookingAtMe) {
-                        return false; // Return false if the player is looking at the entity
+                        if (bl) this.deactivate();
+                        return false;
                     }
 
                     if (!bl && playerEntity.squaredDistanceTo(this) < 144.0) {
@@ -203,15 +204,14 @@ public class WeepingAngelEntity extends HostileEntity {
     public void activate(PlayerEntity player) {
         this.getBrain().remember(MemoryModuleType.ATTACK_TARGET, player);
         this.emitGameEvent(GameEvent.ENTITY_INTERACT);
-        this.playSound(SoundEvents.ENTITY_DOLPHIN_HURT, 1.0f, 1.0f);
+        //this.playSound(SoundEvents.ENTITY_TNT_PRIMED, 1.0f, 1.0f);
         this.setActive(true);
     }
 
     public void deactivate() {
-        System.out.println("HELLOOO");
         this.getBrain().forget(MemoryModuleType.ATTACK_TARGET);
         this.emitGameEvent(GameEvent.ENTITY_INTERACT);
-        this.playSound(SoundEvents.ITEM_LODESTONE_COMPASS_LOCK, 1.0f, 0.1f);
+        //this.playSound(SoundEvents.ITEM_LODESTONE_COMPASS_LOCK, 1.0f, 0.1f);
         this.setActive(false);
     }
 
