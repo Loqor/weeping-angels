@@ -26,8 +26,6 @@ public class LoqorsWeepingAngels implements ModInitializer {
 	public void onInitialize() {
 		LOGGER.info("Loqor's Weeping Angels mod is initializing...");
 
-		AmbleRegistries.getInstance().registerAll(AngelRegistry.getInstance());
-
 		// This registers the entity types and item classes
 		RegistryContainer.register(LWAEntities.class, MOD_ID);
 		RegistryContainer.register(LWAItems.class, MOD_ID);

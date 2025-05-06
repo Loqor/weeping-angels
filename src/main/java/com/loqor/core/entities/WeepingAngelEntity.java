@@ -28,6 +28,7 @@ import net.minecraft.item.ItemStack;
 import net.minecraft.item.Items;
 import net.minecraft.item.PickaxeItem;
 import net.minecraft.nbt.NbtCompound;
+import net.minecraft.registry.tag.ItemTags;
 import net.minecraft.server.world.ServerWorld;
 import net.minecraft.sound.SoundEvents;
 import net.minecraft.util.Identifier;
@@ -43,6 +44,7 @@ import net.minecraft.world.event.GameEvent;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.List;
+import java.util.function.Predicate;
 import java.util.stream.Stream;
 
 public class WeepingAngelEntity extends HostileEntity {
@@ -52,12 +54,19 @@ public class WeepingAngelEntity extends HostileEntity {
     private static final TrackedDataHandler<WeepingAngelEntity.AngelPose> ANGEL_POSES = TrackedDataHandler.ofEnum(WeepingAngelEntity.AngelPose.class);
     private static final TrackedData<AngelPose> ANGEL_POSE = DataTracker.registerData(WeepingAngelEntity.class, ANGEL_POSES);
     private static final String ANGEL_KEY = "Angel";
+    public static final Predicate<LivingEntity> NOT_WEARING_GAZE_DISGUISE_PREDICATE = entity -> {
+        if (entity instanceof PlayerEntity playerEntity) {
+            ItemStack itemStack = playerEntity.getEquippedStack(EquipmentSlot.HEAD);
+            return itemStack.getItem().equals(Items.CARVED_PUMPKIN);
+        } else {
+            return true;
+        }
+    };
     public WeepingAngelEntity(EntityType<? extends HostileEntity> entityType, World world) {
         super(entityType, world);
         this.lookControl = new WeepingAngelEntity.AngelLookControl(this);
         this.moveControl = new WeepingAngelEntity.AngelMoveControl(this);
         this.jumpControl = new WeepingAngelEntity.AngelJumpControl(this);
-        this.setAngelPose(AngelPose.HIDING);
         MobNavigation mobNav = (MobNavigation) this.getNavigation();
         mobNav.setCanSwim(true);
         this.experiencePoints = 0;
@@ -105,7 +114,7 @@ public class WeepingAngelEntity extends HostileEntity {
         this.dataTracker.startTracking(ISNTSTONE, true);
         this.dataTracker.startTracking(ACTIVE, false);
         this.dataTracker.startTracking(ANGEL, AngelRegistry.STONE.id().toString());
-        this.dataTracker.startTracking(ANGEL_POSE, AngelPose.DEFAULT);
+        this.dataTracker.startTracking(ANGEL_POSE, AngelPose.HIDING);
     }
 
     @Override
@@ -198,15 +207,20 @@ public class WeepingAngelEntity extends HostileEntity {
     }
 
     @Override
+    public boolean isPersistent() {
+        return true;
+    }
+
+    @Override
     public void tickMovement() {
-        if (!this.getWorld().isClient()) {
+        if (!this.getWorld().isClient) {
             boolean bl = this.dataTracker.get(ISNTSTONE);
             boolean bl2 = this.shouldBeNotStone();
             if (bl2 != bl) {
-                this.emitGameEvent(GameEvent.ENTITY_INTERACT);
                 if (bl2) {
                     this.playSound(SoundEvents.BLOCK_GRINDSTONE_USE, 1.0F, 1.0F);
                 } else {
+                    this.setAngelPose(this.getRandomAngelPose());
                     this.stopMovement();
                     this.playSound(SoundEvents.BLOCK_GRINDSTONE_USE, 1.0F, 0.1F);
                 }
@@ -249,29 +263,33 @@ public class WeepingAngelEntity extends HostileEntity {
 
     public boolean shouldBeNotStone() {
         List<PlayerEntity> list = this.brain.getOptionalRegisteredMemory(MemoryModuleType.NEAREST_PLAYERS).orElse(List.of());
+        //this.brain.forgetAll();
         boolean bl = this.isActive();
+        //System.out.println(bl + " || " + list);
         if (list.isEmpty()) {
             if (bl) {
                 this.deactivate();
             }
+
+            return true;
         } else {
             boolean bl2 = false;
+
             for (PlayerEntity playerEntity : list) {
                 if (this.canTarget(playerEntity) && !this.isTeammate(playerEntity)) {
                     bl2 = true;
-                    boolean isLookingAtMe = this.isEntityLookingAtMe(
+                    if ((bl || !NOT_WEARING_GAZE_DISGUISE_PREDICATE.test(playerEntity))
+                            && this.isEntityLookingAtMe(
                             playerEntity, 0.5, false,
-                            this.getEyeY(), this.getY() + 0.5 * this.getScaleFactor(),
-                            (this.getEyeY() + this.getY()) / 2.0);
+                            this.getEyeY(), this.getY() + 0.5 * this.getScaleFactor(), (this.getEyeY() + this.getY()) / 2.0)) {
+                        if (bl) {
+                            return false;
+                        }
 
-                    if (isLookingAtMe) {
-                        if (bl) this.deactivate();
-                        return false;
-                    }
-
-                    if (!bl && playerEntity.squaredDistanceTo(this) < 144.0) {
-                        this.activate(playerEntity);
-                        return false;
+                        if (playerEntity.squaredDistanceTo(this) < 144.0) {
+                            this.activate(playerEntity);
+                            return false;
+                        }
                     }
                 }
             }
@@ -279,8 +297,9 @@ public class WeepingAngelEntity extends HostileEntity {
             if (!bl2 && bl) {
                 this.deactivate();
             }
+
+            return true;
         }
-        return true;
     }
 
     public boolean isEntityLookingAtMe(LivingEntity entity, double d, boolean bl, double... checkedYs) {
@@ -293,12 +312,24 @@ public class WeepingAngelEntity extends HostileEntity {
             vec3d2 = vec3d2.normalize();
             double g = vec3d.dotProduct(vec3d2);
             if (g > 1.0 - d / (bl ? f : 1.0)
-                    && entity.canSee(this)) {
+                    && this.canSee(this)) {
                 return true;
             }
         }
 
         return false;
+    }
+
+    public boolean canSee(Entity entity) {
+        if (entity.getWorld() != this.getWorld()) {
+            return false;
+        } else {
+            Vec3d vec3d = new Vec3d(this.getX(), this.getEyeY(), this.getZ());
+            Vec3d vec3d2 = new Vec3d(entity.getX(), entity.getEyeY(), entity.getZ());
+            return !(vec3d2.distanceTo(vec3d) > 128.0) && this.getWorld().raycast(new RaycastContext(vec3d, vec3d2,
+                    RaycastContext.ShapeType.VISUAL, RaycastContext.FluidHandling.NONE, this)).getType()
+                    == HitResult.Type.MISS;
+        }
     }
 
     public static boolean canSpawn(EntityType<WeepingAngelEntity> weepingAngelEntityEntityType,
@@ -307,17 +338,18 @@ public class WeepingAngelEntity extends HostileEntity {
     }
 
     public void activate(PlayerEntity player) {
-        this.getBrain().remember(MemoryModuleType.ATTACK_TARGET, player);
-        this.emitGameEvent(GameEvent.ENTITY_INTERACT);
-        this.setAngelPose(AngelPose.MOVING);
-        this.setActive(true);
+        if (!this.isActive()) {
+            this.getBrain().remember(MemoryModuleType.ATTACK_TARGET, player);
+            this.setAngelPose(AngelPose.MOVING);
+            this.setActive(true);
+        }
     }
 
     public void deactivate() {
-        this.getBrain().forget(MemoryModuleType.ATTACK_TARGET);
-        this.emitGameEvent(GameEvent.ENTITY_INTERACT);
-        this.setAngelPose(this.getRandomAngelPose());
-        this.setActive(false);
+        if (this.isActive()) {
+            this.getBrain().forget(MemoryModuleType.ATTACK_TARGET);
+            this.setActive(false);
+        }
     }
 
     public AngelPose getRandomAngelPose() {
