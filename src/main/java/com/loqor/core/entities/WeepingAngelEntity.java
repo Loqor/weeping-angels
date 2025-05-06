@@ -48,6 +48,7 @@ public class WeepingAngelEntity extends HostileEntity {
     private static final TrackedData<String> ANGEL = DataTracker.registerData(WeepingAngelEntity.class, TrackedDataHandlerRegistry.STRING);
     private static final TrackedDataHandler<WeepingAngelEntity.AngelPose> ANGEL_POSES = TrackedDataHandler.ofEnum(WeepingAngelEntity.AngelPose.class);
     private static final TrackedData<AngelPose> ANGEL_POSE = DataTracker.registerData(WeepingAngelEntity.class, ANGEL_POSES);
+    private static final String ANGEL_KEY = "Angel";
     public WeepingAngelEntity(EntityType<? extends HostileEntity> entityType, World world) {
         super(entityType, world);
         this.lookControl = new WeepingAngelEntity.AngelLookControl(this);
@@ -87,7 +88,7 @@ public class WeepingAngelEntity extends HostileEntity {
     @Override
     public void writeCustomDataToNbt(NbtCompound nbt) {
         super.writeCustomDataToNbt(nbt);
-        nbt.putString("Angel", this.getAngelData());
+        nbt.putString(ANGEL_KEY, this.getAngelData());
     }
 
     @Override
@@ -110,8 +111,8 @@ public class WeepingAngelEntity extends HostileEntity {
     @Override
     public void readCustomDataFromNbt(NbtCompound nbt) {
         super.readCustomDataFromNbt(nbt);
-        if (nbt.contains("Angel")) {
-            this.setAngel(AngelRegistry.getInstance().get(Identifier.tryParse(nbt.getString("angel"))));
+        if (nbt.contains(ANGEL_KEY)) {
+            this.setAngel(AngelRegistry.getInstance().get(Identifier.tryParse(nbt.getString(ANGEL_KEY))));
         }
     }
 
