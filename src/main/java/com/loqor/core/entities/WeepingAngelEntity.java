@@ -209,10 +209,14 @@ public class WeepingAngelEntity extends HostileEntity {
     @Override
     public void tickMovement() {
         if (!this.getWorld().isClient) {
+            if (this.isAiDisabled() ||
+                    !this.getAngelPose().equals(AngelPose.MOVING))
+                this.stopMovement();
             boolean bl = this.dataTracker.get(ISNTSTONE);
             boolean bl2 = this.shouldBeNotStone();
             if (bl2 != bl) {
                 if (bl2) {
+                    this.setAngelPose(AngelPose.MOVING);
                     this.playSound(SoundEvents.BLOCK_GRINDSTONE_USE, 1.0F, 1.0F);
                 } else {
                     this.setAngelPose(this.getRandomAngelPose());
@@ -262,10 +266,10 @@ public class WeepingAngelEntity extends HostileEntity {
     }
 
     public boolean shouldBeNotStone() {
-        List<PlayerEntity> list = this.brain.getOptionalRegisteredMemory(MemoryModuleType.NEAREST_PLAYERS).orElse(List.of());
-        //this.brain.forgetAll();
+        /*List<PlayerEntity> list = this.brain.getOptionalRegisteredMemory(MemoryModuleType.NEAREST_PLAYERS).orElse(List.of());*/
+        TargetPredicate targetPredicate = TargetPredicate.createAttackable().ignoreVisibility().setBaseMaxDistance(144.0D);
+        List<PlayerEntity> list = this.getWorld().getPlayers(targetPredicate, this, this.getBoundingBox().expand(144.0D));
         boolean bl = this.isActive();
-        //System.out.println(bl + " || " + list);
         if (list.isEmpty()) {
             if (bl) {
                 this.deactivate();
@@ -289,6 +293,8 @@ public class WeepingAngelEntity extends HostileEntity {
                         if (playerEntity.squaredDistanceTo(this) < 144.0) {
                             this.activate(playerEntity);
                             return false;
+                        } else {
+                            this.deactivate();
                         }
                     }
                 }

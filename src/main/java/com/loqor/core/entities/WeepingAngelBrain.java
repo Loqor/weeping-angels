@@ -6,18 +6,16 @@ import com.loqor.core.entities.brain.tasks.GoToLookTargetTask;
 import com.loqor.core.entities.brain.tasks.MoveToTargetTask;
 import com.loqor.core.entities.brain.tasks.UpdateLookControlTask;
 import com.mojang.datafixers.util.Pair;
-import net.minecraft.entity.LivingEntity;
 import net.minecraft.entity.ai.brain.Activity;
 import net.minecraft.entity.ai.brain.Brain;
 import net.minecraft.entity.ai.brain.MemoryModuleType;
 import net.minecraft.entity.ai.brain.sensor.Sensor;
 import net.minecraft.entity.ai.brain.sensor.SensorType;
 import net.minecraft.entity.ai.brain.task.*;
-import net.minecraft.entity.mob.MobEntity;
-import net.minecraft.server.world.ServerWorld;
 import net.minecraft.util.math.intprovider.UniformIntProvider;
 
 public class WeepingAngelBrain {
+
     protected static final ImmutableList<? extends SensorType<? extends Sensor<? super WeepingAngelEntity>>> SENSORS = ImmutableList.of(
             SensorType.NEAREST_LIVING_ENTITIES, SensorType.NEAREST_PLAYERS
     );

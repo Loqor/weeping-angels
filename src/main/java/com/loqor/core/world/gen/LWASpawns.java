@@ -17,9 +17,9 @@ public class LWASpawns {
                         BiomeKeys.SOUL_SAND_VALLEY),
                 SpawnGroup.MONSTER,
                 LWAEntities.WEEPING_ANGEL,
-                30,
-                2,
-                4);
+                5,
+                1,
+                3);
         BiomeModifications.addSpawn(BiomeSelectors.includeByKey(
                         BiomeKeys.PLAINS,
                         BiomeKeys.SWAMP,
@@ -45,8 +45,8 @@ public class LWASpawns {
                         BiomeKeys.DEEP_DARK),
                 SpawnGroup.MONSTER,
                 LWAEntities.WEEPING_ANGEL,
-                30,
-                1,
+                10,
+                2,
                 4);
         BiomeModifications.addSpawn(BiomeSelectors.includeByKey(
                         BiomeKeys.END_BARRENS,
@@ -55,8 +55,8 @@ public class LWASpawns {
                         BiomeKeys.THE_END),
                 SpawnGroup.MONSTER,
                 LWAEntities.WEEPING_ANGEL,
-                30,
                 1,
-                4);
+                1,
+                1);
     }
 }
