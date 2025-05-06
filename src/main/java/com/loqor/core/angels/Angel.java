@@ -7,17 +7,20 @@ import com.mojang.serialization.Codec;
 import com.mojang.serialization.JsonOps;
 import com.mojang.serialization.codecs.RecordCodecBuilder;
 import dev.amble.lib.api.Identifiable;
+import net.minecraft.registry.RegistryKey;
 import net.minecraft.util.Identifier;
 import net.minecraft.util.dynamic.Codecs;
+import net.minecraft.world.World;
 
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.util.concurrent.atomic.AtomicReference;
 
-public record Angel(Identifier id, Identifier texture) implements Identifiable {
+public record Angel(Identifier id, Identifier texture, RegistryKey<World> dimension) implements Identifiable {
     public static final Codec<Angel> CODEC = Codecs.exceptionCatching(RecordCodecBuilder.create(instance -> instance.group(
             Identifier.CODEC.fieldOf("id").forGetter(Angel::id),
-            Identifier.CODEC.fieldOf("texture").forGetter(Angel::texture))
+            Identifier.CODEC.fieldOf("texture").forGetter(Angel::texture),
+            World.CODEC.optionalFieldOf("dimension", World.OVERWORLD).forGetter(Angel::dimension))
             .apply(instance, Angel::new)));
     @Override
     public Identifier id() {
@@ -26,6 +29,11 @@ public record Angel(Identifier id, Identifier texture) implements Identifiable {
     @Override
     public Identifier texture() {
         return this.texture;
+    }
+
+    @Override
+    public RegistryKey<World> dimension() {
+        return this.dimension;
     }
 
     public static Angel fromInputStream(InputStream stream) {

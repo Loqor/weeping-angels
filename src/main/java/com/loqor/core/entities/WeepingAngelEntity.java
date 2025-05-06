@@ -4,10 +4,7 @@ import com.loqor.core.angels.Angel;
 import com.loqor.core.angels.AngelRegistry;
 import com.mojang.serialization.Dynamic;
 import net.minecraft.block.WearableCarvedPumpkinBlock;
-import net.minecraft.entity.EntityType;
-import net.minecraft.entity.EquipmentSlot;
-import net.minecraft.entity.LivingEntity;
-import net.minecraft.entity.SpawnReason;
+import net.minecraft.entity.*;
 import net.minecraft.entity.ai.TargetPredicate;
 import net.minecraft.entity.ai.brain.Brain;
 import net.minecraft.entity.ai.brain.MemoryModuleType;
@@ -41,6 +38,7 @@ import net.minecraft.world.*;
 import net.minecraft.world.event.GameEvent;
 
 import java.util.List;
+import java.util.stream.Stream;
 
 public class WeepingAngelEntity extends HostileEntity {
     private static final TrackedData<Boolean> ISNTSTONE = DataTracker.registerData(WeepingAngelEntity.class, TrackedDataHandlerRegistry.BOOLEAN);
@@ -55,16 +53,30 @@ public class WeepingAngelEntity extends HostileEntity {
         this.moveControl = new WeepingAngelEntity.AngelMoveControl(this);
         this.jumpControl = new WeepingAngelEntity.AngelJumpControl(this);
         this.setAngelPose(AngelPose.HIDING);
-        if (world.getRegistryKey().equals(World.END)) {
-            this.setAngel(AngelRegistry.ENDSTONE);
-        } else if (world.getRegistryKey().equals(World.NETHER)) {
-            this.setAngel(AngelRegistry.BLACKSTONE);
-        } else {
-            this.setAngel(AngelRegistry.STONE);
-        }
+        this.setAngelPerDimension(world);
         MobNavigation mobNav = (MobNavigation) this.getNavigation();
         mobNav.setCanSwim(true);
         this.experiencePoints = 0;
+    }
+
+    public void setAngelPerDimension(World world) {
+        Stream<Angel> angelList = AngelRegistry.getInstance().toList().stream();
+        if (world.getRegistryKey().equals(World.END)) {
+            this.setAngel(angelList
+                    .filter(angel -> angel.dimension().equals(World.END))
+                    .findAny()
+                    .orElse(AngelRegistry.ENDSTONE));
+        } else if (world.getRegistryKey().equals(World.NETHER)) {
+            this.setAngel(angelList
+                    .filter(angel -> angel.dimension().equals(World.NETHER))
+                    .findAny()
+                    .orElse(AngelRegistry.BLACKSTONE));
+        } else {
+            this.setAngel(angelList
+                    .filter(angel -> angel.dimension().equals(World.OVERWORLD))
+                    .findAny()
+                    .orElse(AngelRegistry.STONE));
+        }
     }
 
     static {
@@ -92,20 +104,20 @@ public class WeepingAngelEntity extends HostileEntity {
     }
 
     @Override
-    protected void attackLivingEntity(LivingEntity target) {
+    public void onAttacking(Entity target) {
         if (target instanceof PlayerEntity player) {
             if (player.getHealth() == player.getMaxHealth()) {
-                super.attackLivingEntity(target);
+                super.onAttacking(target);
                 return;
             }
             int randomX = (int) (this.getWorld().getRandom().nextInt() *
-                                this.getWorld().getWorldBorder().getSize() - this.getWorld().getWorldBorder().getSize() / 2);
+                    this.getWorld().getWorldBorder().getSize() - this.getWorld().getWorldBorder().getSize() / 2);
             int randomZ = (int) (this.getWorld().getRandom().nextInt() *
-                                this.getWorld().getWorldBorder().getSize() - this.getWorld().getWorldBorder().getSize() / 2);
+                    this.getWorld().getWorldBorder().getSize() - this.getWorld().getWorldBorder().getSize() / 2);
             player.teleport(randomX, player.getWorld().getChunk(ChunkSectionPos.getSectionCoord(randomX), ChunkSectionPos.getSectionCoord(randomZ))
                     .sampleHeightmap(Heightmap.Type.MOTION_BLOCKING_NO_LEAVES, randomX & 15, randomZ & 15) + 1, randomZ);
         }
-        super.attackLivingEntity(target);
+        super.onAttacking(target);
     }
 
     @Override

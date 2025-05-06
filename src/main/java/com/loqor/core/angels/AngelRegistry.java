@@ -5,6 +5,7 @@ import dev.amble.lib.register.datapack.SimpleDatapackRegistry;
 import net.fabricmc.fabric.api.resource.ResourceManagerHelper;
 import net.minecraft.resource.ResourceType;
 import net.minecraft.util.Identifier;
+import net.minecraft.world.World;
 
 public class AngelRegistry extends SimpleDatapackRegistry<Angel> {
     private static final AngelRegistry instance = new AngelRegistry();
@@ -19,9 +20,9 @@ public class AngelRegistry extends SimpleDatapackRegistry<Angel> {
 
     @Override
     protected void defaults() {
-        STONE = register(new Angel(LoqorsWeepingAngels.id("angel/stone"), LoqorsWeepingAngels.id("textures/entity/angel/stone_angel.png")));
-        BLACKSTONE = register(new Angel(LoqorsWeepingAngels.id("angel/blackstone"), LoqorsWeepingAngels.id("textures/entity/angel/blackstone_angel.png")));
-        ENDSTONE = register(new Angel(LoqorsWeepingAngels.id("angel/endstone"), LoqorsWeepingAngels.id("textures/entity/angel/endstone_angel.png")));
+        STONE = register(new Angel(LoqorsWeepingAngels.id("angel/stone"), LoqorsWeepingAngels.id("textures/entity/angel/stone_angel.png"), World.OVERWORLD));
+        BLACKSTONE = register(new Angel(LoqorsWeepingAngels.id("angel/blackstone"), LoqorsWeepingAngels.id("textures/entity/angel/blackstone_angel.png"), World.NETHER));
+        ENDSTONE = register(new Angel(LoqorsWeepingAngels.id("angel/endstone"), LoqorsWeepingAngels.id("textures/entity/angel/endstone_angel.png"), World.END));
     }
 
     @Override
