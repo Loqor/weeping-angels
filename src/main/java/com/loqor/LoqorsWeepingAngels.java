@@ -3,6 +3,7 @@ package com.loqor;
 import com.loqor.core.LWAEntities;
 import com.loqor.core.LWAItems;
 import com.loqor.core.entities.WeepingAngelEntity;
+import com.loqor.core.world.gen.LWASpawns;
 import dev.amble.lib.container.RegistryContainer;
 import dev.amble.lib.register.AmbleRegistries;
 import net.fabricmc.api.ModInitializer;
@@ -23,12 +24,18 @@ public class LoqorsWeepingAngels implements ModInitializer {
 	@Override
 	public void onInitialize() {
 		LOGGER.info("Loqor's Weeping Angels mod is initializing...");
+
+		// This registers the entity types and item classes
 		RegistryContainer.register(LWAEntities.class, MOD_ID);
 		RegistryContainer.register(LWAItems.class, MOD_ID);
+
+		// This is for spawning the Weeping Angels in different biomes
+		LWASpawns.addSpawns();
 
 		registerEntityAttributes();
 	}
 
+	// This is for registering the entity attributes
 	public void registerEntityAttributes() {
 		FabricDefaultAttributeRegistry.register(LWAEntities.WEEPING_ANGEL,
 				WeepingAngelEntity.createMobAttributes().add(EntityAttributes.GENERIC_MAX_HEALTH, 20.0D)

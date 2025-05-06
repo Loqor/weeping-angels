@@ -54,6 +54,13 @@ public class WeepingAngelEntity extends HostileEntity {
         this.moveControl = new WeepingAngelEntity.AngelMoveControl(this);
         this.jumpControl = new WeepingAngelEntity.AngelJumpControl(this);
         this.setAngelPose(AngelPose.HIDING);
+        if (world.getRegistryKey().equals(World.END)) {
+            this.setAngel(AngelRegistry.ENDSTONE);
+        } else if (world.getRegistryKey().equals(World.NETHER)) {
+            this.setAngel(AngelRegistry.BLACKSTONE);
+        } else {
+            this.setAngel(AngelRegistry.STONE);
+        }
         MobNavigation mobNav = (MobNavigation) this.getNavigation();
         mobNav.setCanSwim(true);
         this.experiencePoints = 0;
