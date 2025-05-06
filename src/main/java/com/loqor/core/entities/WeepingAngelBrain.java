@@ -5,6 +5,7 @@ import com.google.common.collect.ImmutableSet;
 import com.loqor.core.entities.brain.tasks.MoveToTargetTask;
 import com.loqor.core.entities.brain.tasks.UpdateLookControlTask;
 import com.mojang.datafixers.util.Pair;
+import net.minecraft.entity.LivingEntity;
 import net.minecraft.entity.ai.brain.Activity;
 import net.minecraft.entity.ai.brain.Brain;
 import net.minecraft.entity.ai.brain.MemoryModuleType;
@@ -13,6 +14,8 @@ import net.minecraft.entity.ai.brain.sensor.SensorType;
 import net.minecraft.entity.ai.brain.task.*;
 import net.minecraft.server.world.ServerWorld;
 import net.minecraft.util.math.intprovider.UniformIntProvider;
+
+import java.util.Optional;
 
 public class WeepingAngelBrain {
     protected static final ImmutableList<? extends SensorType<? extends Sensor<? super WeepingAngelEntity>>> SENSORS = ImmutableList.of(
@@ -42,17 +45,17 @@ public class WeepingAngelBrain {
     static void addIdleTasks(Brain<WeepingAngelEntity> brain) {
         brain.setTaskList(
                 Activity.IDLE,
+                10,
                 ImmutableList.of(
-                        Pair.of(
-                                1, UpdateAttackTargetTask.create(WeepingAngelEntity::isRemoved, angel ->
-                                        angel.getBrain().getOptionalRegisteredMemory(MemoryModuleType.NEAREST_VISIBLE_PLAYER))
+                        UpdateAttackTargetTask.create(WeepingAngelEntity::isRemoved,  e ->
+                                        ((Optional<? extends LivingEntity>) brain.getOptionalRegisteredMemory(MemoryModuleType.NEAREST_VISIBLE_PLAYER))
                         ),
-                        Pair.of(2, LookAtMobWithIntervalTask.follow(8.0F, UniformIntProvider.create(30, 60))),
-                        Pair.of(2, new RandomTask<>(ImmutableList.of(
+                        LookAtMobWithIntervalTask.follow(8.0F, UniformIntProvider.create(30, 60)),
+                        new RandomTask<>(ImmutableList.of(
                                 Pair.of(StrollTask.create(0.3F), 2),
                                 Pair.of(GoTowardsLookTargetTask.create(0.3F, 3), 2), // Ensure GoToLookTargetTask is defined and imported
                                 Pair.of(new WaitTask(30, 60), 1)
-                        )))
+                        ))
                 )
         );
     }

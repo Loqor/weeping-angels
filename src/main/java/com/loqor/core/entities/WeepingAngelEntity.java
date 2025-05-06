@@ -1,7 +1,9 @@
 package com.loqor.core.entities;
 
 import com.mojang.serialization.Dynamic;
+import net.minecraft.block.WearableCarvedPumpkinBlock;
 import net.minecraft.entity.EntityType;
+import net.minecraft.entity.EquipmentSlot;
 import net.minecraft.entity.LivingEntity;
 import net.minecraft.entity.SpawnReason;
 import net.minecraft.entity.ai.TargetPredicate;
@@ -17,9 +19,12 @@ import net.minecraft.entity.data.TrackedData;
 import net.minecraft.entity.data.TrackedDataHandlerRegistry;
 import net.minecraft.entity.mob.HostileEntity;
 import net.minecraft.entity.player.PlayerEntity;
+import net.minecraft.item.Items;
 import net.minecraft.server.world.ServerWorld;
 import net.minecraft.sound.SoundEvents;
+import net.minecraft.util.hit.HitResult;
 import net.minecraft.util.math.BlockPos;
+import net.minecraft.util.math.Box;
 import net.minecraft.util.math.Vec3d;
 import net.minecraft.util.math.random.Random;
 import net.minecraft.util.profiler.Profiler;
@@ -84,13 +89,30 @@ public class WeepingAngelEntity extends HostileEntity {
         WeepingAngelBrain.updateActivities(this);
     }
 
+    /*public boolean isStuckWithPlayer() {
+        List<PlayerEntity> list = this.brain.getOptionalRegisteredMemory(MemoryModuleType.NEAREST_PLAYERS).orElse(List.of());
+        if (!list.isEmpty()) {
+            Box box = this.getBoundingBox();
+
+            for (PlayerEntity playerEntity : list) {
+                if (box.contains(playerEntity.getEyePos())) {
+                    this.playerIntersectionTimer++;
+                    return this.playerIntersectionTimer > 4;
+                }
+            }
+
+        }
+        this.playerIntersectionTimer = 0;
+        return false;
+    }*/
+
     @Override
     public void tickMovement() {
         if (!this.getWorld().isClient()) {
             boolean bl = this.dataTracker.get(ISNTSTONE);
             boolean bl2 = this.shouldBeNotStone();
-            if (bl != bl2) {
-                this.dataTracker.set(ISNTSTONE, bl2);
+            if (bl2 != bl) {
+                this.emitGameEvent(GameEvent.ENTITY_INTERACT);
                 if (bl2) {
                     this.playSound(SoundEvents.BLOCK_GRINDSTONE_USE, 1.0F, 1.0F);
                 } else {
@@ -98,7 +120,10 @@ public class WeepingAngelEntity extends HostileEntity {
                     this.playSound(SoundEvents.BLOCK_SMITHING_TABLE_USE, 1.0F, 0.1F);
                 }
             }
+
+            this.dataTracker.set(ISNTSTONE, bl2);
         }
+
         super.tickMovement();
     }
 
@@ -126,22 +151,22 @@ public class WeepingAngelEntity extends HostileEntity {
             if (bl) {
                 this.deactivate();
             }
-
-            return true;
         } else {
             boolean bl2 = false;
-
             for (PlayerEntity playerEntity : list) {
-                if (this.canTarget(playerEntity) && !this.isTeammate(playerEntity)) {
+                if (/*this.canTarget(playerEntity) && */!this.isTeammate(playerEntity)) {
                     bl2 = true;
-                    if ((!bl)
-                            && this.isEntityLookingAtMe(
-                            playerEntity, 0.5, false, true, new double[]{this.getEyeY(), this.getY() + 0.5 * this.getScaleFactor(), (this.getEyeY() + this.getY()) / 2.0}
-                    )) {
-                        if (playerEntity.squaredDistanceTo(this) < 144.0) {
-                            this.activate(playerEntity);
-                            return false;
-                        }
+                    boolean isLookingAtMe = this.isEntityLookingAtMe(
+                            playerEntity, 0.5, false, true,
+                            this.getEyeY(), this.getY() + 0.5 * this.getScaleFactor(), (this.getEyeY() + this.getY()) / 2.0);
+
+                    if (isLookingAtMe) {
+                        return false; // Return false if the player is looking at the entity
+                    }
+
+                    if (!bl && playerEntity.squaredDistanceTo(this) < 144.0) {
+                        this.activate(playerEntity);
+                        return false;
                     }
                 }
             }
@@ -149,9 +174,8 @@ public class WeepingAngelEntity extends HostileEntity {
             if (!bl2 && bl) {
                 this.deactivate();
             }
-
-            return true;
         }
+        return true;
     }
 
     public boolean isEntityLookingAtMe(LivingEntity entity, double d, boolean bl, boolean visualShape, double... checkedYs) {
@@ -179,11 +203,12 @@ public class WeepingAngelEntity extends HostileEntity {
     public void activate(PlayerEntity player) {
         this.getBrain().remember(MemoryModuleType.ATTACK_TARGET, player);
         this.emitGameEvent(GameEvent.ENTITY_INTERACT);
-        this.playSound(SoundEvents.ITEM_LODESTONE_COMPASS_LOCK, 1.0f, 1.0f);
+        this.playSound(SoundEvents.ENTITY_DOLPHIN_HURT, 1.0f, 1.0f);
         this.setActive(true);
     }
 
     public void deactivate() {
+        System.out.println("HELLOOO");
         this.getBrain().forget(MemoryModuleType.ATTACK_TARGET);
         this.emitGameEvent(GameEvent.ENTITY_INTERACT);
         this.playSound(SoundEvents.ITEM_LODESTONE_COMPASS_LOCK, 1.0f, 0.1f);
