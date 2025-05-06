@@ -2,15 +2,19 @@ package com.loqor.core.entities;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
+import com.loqor.core.entities.brain.tasks.GoToLookTargetTask;
 import com.loqor.core.entities.brain.tasks.MoveToTargetTask;
 import com.loqor.core.entities.brain.tasks.UpdateLookControlTask;
 import com.mojang.datafixers.util.Pair;
+import net.minecraft.entity.LivingEntity;
 import net.minecraft.entity.ai.brain.Activity;
 import net.minecraft.entity.ai.brain.Brain;
 import net.minecraft.entity.ai.brain.MemoryModuleType;
 import net.minecraft.entity.ai.brain.sensor.Sensor;
 import net.minecraft.entity.ai.brain.sensor.SensorType;
 import net.minecraft.entity.ai.brain.task.*;
+import net.minecraft.entity.mob.MobEntity;
+import net.minecraft.server.world.ServerWorld;
 import net.minecraft.util.math.intprovider.UniformIntProvider;
 
 public class WeepingAngelBrain {
@@ -40,13 +44,13 @@ public class WeepingAngelBrain {
                 Activity.IDLE,
                 10,
                 ImmutableList.of(
-                        UpdateAttackTargetTask.create(WeepingAngelEntity::isRemoved,  e ->
-                                brain.getOptionalRegisteredMemory(MemoryModuleType.NEAREST_VISIBLE_PLAYER)
+                        UpdateAttackTargetTask.create(WeepingAngelEntity::isActive, e ->
+                                brain.getOptionalRegisteredMemory(MemoryModuleType.NEAREST_VISIBLE_TARGETABLE_PLAYER)
                         ),
                         LookAtMobWithIntervalTask.follow(8.0F, UniformIntProvider.create(30, 60)),
                         new RandomTask<>(ImmutableList.of(
                                 Pair.of(StrollTask.create(0.3F), 2),
-                                Pair.of(GoTowardsLookTargetTask.create(0.3F, 3), 2),
+                                Pair.of(GoToLookTargetTask.create(0.3F, 3), 2),
                                 Pair.of(new WaitTask(30, 60), 1)
                         ))
                 )

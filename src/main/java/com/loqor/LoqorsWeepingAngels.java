@@ -2,6 +2,7 @@ package com.loqor;
 
 import com.loqor.core.LWAEntities;
 import com.loqor.core.LWAItems;
+import com.loqor.core.angels.AngelRegistry;
 import com.loqor.core.entities.WeepingAngelEntity;
 import com.loqor.core.world.gen.LWASpawns;
 import dev.amble.lib.container.RegistryContainer;
@@ -24,6 +25,8 @@ public class LoqorsWeepingAngels implements ModInitializer {
 	@Override
 	public void onInitialize() {
 		LOGGER.info("Loqor's Weeping Angels mod is initializing...");
+
+		AmbleRegistries.getInstance().registerAll(AngelRegistry.getInstance());
 
 		// This registers the entity types and item classes
 		RegistryContainer.register(LWAEntities.class, MOD_ID);

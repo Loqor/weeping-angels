@@ -40,6 +40,7 @@ import net.minecraft.util.math.random.Random;
 import net.minecraft.util.profiler.Profiler;
 import net.minecraft.world.*;
 import net.minecraft.world.event.GameEvent;
+import org.jetbrains.annotations.Nullable;
 
 import java.util.List;
 import java.util.stream.Stream;
@@ -57,10 +58,16 @@ public class WeepingAngelEntity extends HostileEntity {
         this.moveControl = new WeepingAngelEntity.AngelMoveControl(this);
         this.jumpControl = new WeepingAngelEntity.AngelJumpControl(this);
         this.setAngelPose(AngelPose.HIDING);
-        this.setAngelPerDimension(world);
         MobNavigation mobNav = (MobNavigation) this.getNavigation();
         mobNav.setCanSwim(true);
         this.experiencePoints = 0;
+    }
+
+    @Nullable
+    @Override
+    public EntityData initialize(ServerWorldAccess world, LocalDifficulty difficulty, SpawnReason spawnReason, @Nullable EntityData entityData, @Nullable NbtCompound entityNbt) {
+        this.setAngelPerDimension(world.toServerWorld());
+        return super.initialize(world, difficulty, spawnReason, entityData, entityNbt);
     }
 
     public void setAngelPerDimension(World world) {
@@ -424,7 +431,11 @@ public class WeepingAngelEntity extends HostileEntity {
 
         @Override
         public void tick() {
-            WeepingAngelEntity.this.setJumping(false);
+            if (WeepingAngelEntity.this.isntStone()) {
+                super.tick();
+            } else {
+                WeepingAngelEntity.this.setJumping(false);
+            }
         }
     }
 

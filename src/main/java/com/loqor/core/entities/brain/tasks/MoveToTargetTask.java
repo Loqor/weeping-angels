@@ -52,7 +52,7 @@ public class MoveToTargetTask extends MultiTickTask<MobEntity> {
             return false;
         } else {
             Brain<?> brain = mobEntity.getBrain();
-            WalkTarget walkTarget = (WalkTarget)brain.getOptionalRegisteredMemory(MemoryModuleType.WALK_TARGET).get();
+            WalkTarget walkTarget = brain.getOptionalRegisteredMemory(MemoryModuleType.WALK_TARGET).get();
             boolean bl = this.hasReached(mobEntity, walkTarget);
             if (!bl && this.hasFinishedPath(mobEntity, walkTarget, serverWorld.getTime())) {
                 this.lookTargetPos = walkTarget.getLookTarget().getBlockPos();
@@ -71,7 +71,7 @@ public class MoveToTargetTask extends MultiTickTask<MobEntity> {
     protected boolean shouldKeepRunning(ServerWorld serverWorld, MobEntity mobEntity, long l) {
         if (this.path != null && this.lookTargetPos != null) {
             Optional<WalkTarget> optional = mobEntity.getBrain().getOptionalRegisteredMemory(MemoryModuleType.WALK_TARGET);
-            boolean bl = (Boolean)optional.map(MoveToTargetTask::isTargetSpectator).orElse(false);
+            boolean bl = optional.map(MoveToTargetTask::isTargetSpectator).orElse(false);
             EntityNavigation entityNavigation = mobEntity.getNavigation();
             return !entityNavigation.isIdle() && optional.isPresent() && !this.hasReached(mobEntity, (WalkTarget)optional.get()) && !bl;
         } else {
@@ -106,7 +106,7 @@ public class MoveToTargetTask extends MultiTickTask<MobEntity> {
         }
 
         if (path != null && this.lookTargetPos != null) {
-            WalkTarget walkTarget = (WalkTarget)brain.getOptionalRegisteredMemory(MemoryModuleType.WALK_TARGET).get();
+            WalkTarget walkTarget = brain.getOptionalRegisteredMemory(MemoryModuleType.WALK_TARGET).get();
             if (walkTarget.getLookTarget().getBlockPos().getSquaredDistance(this.lookTargetPos) > 4.0
                     && this.hasFinishedPath(mobEntity, walkTarget, serverWorld.getTime())) {
                 this.lookTargetPos = walkTarget.getLookTarget().getBlockPos();
@@ -149,6 +149,6 @@ public class MoveToTargetTask extends MultiTickTask<MobEntity> {
     }
 
     private static boolean isTargetSpectator(WalkTarget target) {
-        return target.getLookTarget() instanceof EntityLookTarget entityLookTarget ? entityLookTarget.getEntity().isSpectator() : false;
+        return target.getLookTarget() instanceof EntityLookTarget entityLookTarget && entityLookTarget.getEntity().isSpectator();
     }
 }
