@@ -54,6 +54,17 @@ dependencies {
 	
 }
 
+// Add the generated resources to the main source set
+sourceSets {
+	main {
+		resources {
+			srcDirs += [
+					"src/main/generated"
+			]
+		}
+	}
+}
+
 processResources {
 	inputs.property "version", project.version
 

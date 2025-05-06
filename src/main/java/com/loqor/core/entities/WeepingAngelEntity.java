@@ -264,6 +264,7 @@ public class WeepingAngelEntity extends HostileEntity {
     }
 
     public boolean isEntityLookingAtMe(LivingEntity entity, double d, boolean bl, double... checkedYs) {
+
         Vec3d vec3d = entity.getRotationVec(1.0F).normalize();
 
         for (double e : checkedYs) {
