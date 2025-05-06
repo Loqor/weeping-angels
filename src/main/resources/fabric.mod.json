@@ -1,0 +1,40 @@
+{
+	"schemaVersion": 1,
+	"id": "loqors-weeping-angels",
+	"version": "${version}",
+	"name": "Loqor's Weeping Angels",
+	"description": "My Weeping Angels mod for Fabric 1.20.1",
+	"authors": [
+		"Loqor, westankrang"
+	],
+	"contact": {
+		"homepage": "https://loqor.dev/",
+		"sources": "https://github.com/loqor/weeping-angels"
+	},
+	"license": "CC0-1.0",
+	"icon": "assets/loqors-weeping-angels/icon.png",
+	"environment": "*",
+	"entrypoints": {
+		"main": [
+			"com.loqor.LoqorsWeepingAngels"
+		],
+		"client": [
+			"com.loqor.client.LoqorsWeepingAngelsClient"
+		],
+		"fabric-datagen": [
+			"com.loqor.client.LoqorsWeepingAngelsDataGenerator"
+		]
+	},
+	"mixins": [
+		"loqors-weeping-angels.mixins.json"
+	],
+	"depends": {
+		"fabricloader": ">=0.16.9",
+		"minecraft": "~1.20.1",
+		"java": ">=17",
+		"fabric-api": "*"
+	},
+	"suggests": {
+		"another-mod": "*"
+	}
+}
