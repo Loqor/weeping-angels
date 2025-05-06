@@ -110,10 +110,8 @@ public class WeepingAngelEntity extends HostileEntity {
                 super.onAttacking(target);
                 return;
             }
-            int randomX = (int) (this.getWorld().getRandom().nextInt() *
-                    this.getWorld().getWorldBorder().getSize() - this.getWorld().getWorldBorder().getSize() / 2);
-            int randomZ = (int) (this.getWorld().getRandom().nextInt() *
-                    this.getWorld().getWorldBorder().getSize() - this.getWorld().getWorldBorder().getSize() / 2);
+            int randomX = player.getBlockX() * this.getWorld().getRandom().nextBetween(-1500, 1500);
+            int randomZ = player.getBlockZ() * this.getWorld().getRandom().nextBetween(-1500, 1500);
             player.teleport(randomX, this.getWorld().getTopY() + 1, randomZ);
         }
         super.onAttacking(target);
