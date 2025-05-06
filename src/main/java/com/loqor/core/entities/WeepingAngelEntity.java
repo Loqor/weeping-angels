@@ -1,5 +1,7 @@
 package com.loqor.core.entities;
 
+import com.loqor.core.angels.Angel;
+import com.loqor.core.angels.AngelRegistry;
 import com.mojang.serialization.Dynamic;
 import net.minecraft.block.WearableCarvedPumpkinBlock;
 import net.minecraft.entity.EntityType;
@@ -20,8 +22,10 @@ import net.minecraft.entity.data.TrackedDataHandlerRegistry;
 import net.minecraft.entity.mob.HostileEntity;
 import net.minecraft.entity.player.PlayerEntity;
 import net.minecraft.item.Items;
+import net.minecraft.nbt.NbtCompound;
 import net.minecraft.server.world.ServerWorld;
 import net.minecraft.sound.SoundEvents;
+import net.minecraft.util.Identifier;
 import net.minecraft.util.hit.HitResult;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.math.Box;
@@ -36,6 +40,7 @@ import java.util.List;
 public class WeepingAngelEntity extends HostileEntity {
     private static final TrackedData<Boolean> ISNTSTONE = DataTracker.registerData(WeepingAngelEntity.class, TrackedDataHandlerRegistry.BOOLEAN);
     private static final TrackedData<Boolean> ACTIVE = DataTracker.registerData(WeepingAngelEntity.class, TrackedDataHandlerRegistry.BOOLEAN);
+    private static final TrackedData<String> ANGEL = DataTracker.registerData(WeepingAngelEntity.class, TrackedDataHandlerRegistry.STRING);
     public WeepingAngelEntity(EntityType<? extends HostileEntity> entityType, World world) {
         super(entityType, world);
         this.lookControl = new WeepingAngelEntity.AngelLookControl(this);
@@ -56,6 +61,33 @@ public class WeepingAngelEntity extends HostileEntity {
         super.initDataTracker();
         this.dataTracker.startTracking(ISNTSTONE, true);
         this.dataTracker.startTracking(ACTIVE, false);
+        this.dataTracker.startTracking(ANGEL, AngelRegistry.STONE.id().toString());
+    }
+
+    @Override
+    public void writeCustomDataToNbt(NbtCompound nbt) {
+        super.writeCustomDataToNbt(nbt);
+        nbt.putString("Angel", this.getAngelData());
+    }
+
+    @Override
+    public void readCustomDataFromNbt(NbtCompound nbt) {
+        super.readCustomDataFromNbt(nbt);
+        if (nbt.contains("Angel")) {
+            this.setAngel(AngelRegistry.getInstance().get(Identifier.tryParse(nbt.getString("angel"))));
+        }
+    }
+
+    public void setAngel(Angel dalek) {
+        this.dataTracker.set(ANGEL, dalek.id().toString());
+    }
+
+    public String getAngelData() {
+        return this.dataTracker.get(ANGEL);
+    }
+
+    public Angel getAngel() {
+        return AngelRegistry.getInstance().get(Identifier.tryParse(this.getAngelData()));
     }
 
     @Override

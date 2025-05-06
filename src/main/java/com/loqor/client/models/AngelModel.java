@@ -1,13 +1,13 @@
 package com.loqor.client.models;
 
+import com.loqor.core.entities.WeepingAngelEntity;
 import net.minecraft.client.model.*;
 import net.minecraft.client.render.VertexConsumer;
 import net.minecraft.client.render.entity.model.SinglePartEntityModel;
 import net.minecraft.client.util.math.MatrixStack;
 import net.minecraft.entity.Entity;
 
-@SuppressWarnings("rawtypes")
-public class AngelModel extends SinglePartEntityModel {
+public class AngelModel<T extends Entity> extends SinglePartEntityModel<T> {
 	public final ModelPart Angel;
 	public final ModelPart Head;
 	public final ModelPart Body;
@@ -78,7 +78,7 @@ public class AngelModel extends SinglePartEntityModel {
 	}
 
 	@Override
-	public void setAngles(Entity entity, float limbAngle, float limbDistance, float animationProgress, float headYaw, float headPitch) {
+	public void setAngles(T entity, float limbAngle, float limbDistance, float animationProgress, float headYaw, float headPitch) {
 
 	}
 }
