@@ -21,6 +21,7 @@ import net.minecraft.entity.data.DataTracker;
 import net.minecraft.entity.data.TrackedData;
 import net.minecraft.entity.data.TrackedDataHandler;
 import net.minecraft.entity.data.TrackedDataHandlerRegistry;
+import net.minecraft.entity.mob.CreeperEntity;
 import net.minecraft.entity.mob.HostileEntity;
 import net.minecraft.entity.player.PlayerEntity;
 import net.minecraft.item.ItemStack;
@@ -225,6 +226,18 @@ public class WeepingAngelEntity extends HostileEntity {
     @Override
     public boolean canUsePortals() {
         return this.isntStone();
+    }
+
+    @Override
+    protected void dropEquipment(DamageSource source, int lootingMultiplier, boolean allowDrops) {
+        super.dropEquipment(source, lootingMultiplier, allowDrops);
+        Entity entity = source.getAttacker();
+        if (entity instanceof PlayerEntity player) {
+            ItemStack stack = player.getMainHandStack();
+            if (stack.getItem() instanceof PickaxeItem) {
+                this.dropStack(new ItemStack(Items.LODESTONE));
+            }
+        }
     }
 
     public boolean shouldBeNotStone() {
