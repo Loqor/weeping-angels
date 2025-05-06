@@ -7,7 +7,7 @@ import net.minecraft.client.render.entity.model.SinglePartEntityModel;
 import net.minecraft.client.util.math.MatrixStack;
 import net.minecraft.entity.Entity;
 
-public class AngelModel<T extends Entity> extends SinglePartEntityModel<T> {
+public class AngelModel<T extends WeepingAngelEntity> extends SinglePartEntityModel<T> {
 	public final ModelPart Angel;
 	public final ModelPart Head;
 	public final ModelPart Body;
@@ -79,6 +79,55 @@ public class AngelModel<T extends Entity> extends SinglePartEntityModel<T> {
 
 	@Override
 	public void setAngles(T entity, float limbAngle, float limbDistance, float animationProgress, float headYaw, float headPitch) {
+		this.rotationsForEachPose(entity.getAngelPose());
+	}
 
+	public void rotationsForEachPose(WeepingAngelEntity.AngelPose pose) {
+		switch (pose) {
+			default -> {}
+			case RETREATING -> {
+				this.Angel.yaw = (float) (180f * (Math.PI / 180f));
+			}
+			case ATTACKING, MOVING -> {
+				this.Angel.yaw = (float) (0 * (Math.PI / 180f));
+				this.Head.pitch = (float) (0 * (Math.PI / 180f));
+				this.RightArm.pitch = (float) (-90.4541127733f * (Math.PI / 180f));
+				this.RightArm.yaw = (float) (-2.993175786f * (Math.PI / 180f));
+				this.RightArm.roll = (float) (-24.6656943499f * (Math.PI / 180f));
+				this.LeftArm.pitch = (float) (-80.9205325268f * (Math.PI / 180f));
+				this.LeftArm.yaw = (float) (4.2085425191f * (Math.PI / 180f));
+				this.LeftArm.roll = (float) (-24.6656943499f * (Math.PI / 180f));
+			}
+			case AFRAID -> {
+				this.Angel.yaw = (float) (180f * (Math.PI / 180f));
+				this.Head.pitch = (float) (30f * (Math.PI / 180f));
+				this.RightArm.pitch = (float) (-93.6472701325 * (Math.PI / 180f));
+				this.RightArm.yaw = (float) (-38.6358981994f * (Math.PI / 180f));
+				this.RightArm.roll = (float) (-35.8762349975f * (Math.PI / 180f));
+				this.LeftArm.pitch = (float) (-93.6472701325f * (Math.PI / 180f));
+				this.LeftArm.yaw = (float) (38.6358981994f * (Math.PI / 180f));
+				this.LeftArm.roll = (float) (35.8762349975f * (Math.PI / 180f));
+			}
+			case ANGRY -> {
+				this.Angel.yaw = (float) (0 * (Math.PI / 180f));
+				this.Head.pitch = (float) (-45f * (Math.PI / 180f));
+				this.RightArm.pitch = (float) (-132.5082921552 * (Math.PI / 180f));
+				this.RightArm.yaw = (float) (18.9664339657f * (Math.PI / 180f));
+				this.RightArm.roll = (float) (-29.1170963085f * (Math.PI / 180f));
+				this.LeftArm.pitch = (float) (-132.5082921552f * (Math.PI / 180f));
+				this.LeftArm.yaw = (float) (18.9664339657f * (Math.PI / 180f));
+				this.LeftArm.roll = (float) (29.1170963085f * (Math.PI / 180f));
+			}
+			case HIDING -> {
+				this.Angel.yaw = (float) (0 * (Math.PI / 180f));
+				this.Head.pitch = (float) (30f * (Math.PI / 180f));
+				this.RightArm.pitch = (float) (-93.6472701325 * (Math.PI / 180f));
+				this.RightArm.yaw = (float) (-38.6358981994f * (Math.PI / 180f));
+				this.RightArm.roll = (float) (-35.8762349975f * (Math.PI / 180f));
+				this.LeftArm.pitch = (float) (-93.6472701325f * (Math.PI / 180f));
+				this.LeftArm.yaw = (float) (38.6358981994f * (Math.PI / 180f));
+				this.LeftArm.roll = (float) (35.8762349975f * (Math.PI / 180f));
+			}
+		}
 	}
 }

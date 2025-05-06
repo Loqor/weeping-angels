@@ -16,12 +16,16 @@ import net.minecraft.entity.ai.control.JumpControl;
 import net.minecraft.entity.ai.control.LookControl;
 import net.minecraft.entity.ai.control.MoveControl;
 import net.minecraft.entity.ai.pathing.*;
+import net.minecraft.entity.damage.DamageSource;
 import net.minecraft.entity.data.DataTracker;
 import net.minecraft.entity.data.TrackedData;
+import net.minecraft.entity.data.TrackedDataHandler;
 import net.minecraft.entity.data.TrackedDataHandlerRegistry;
 import net.minecraft.entity.mob.HostileEntity;
 import net.minecraft.entity.player.PlayerEntity;
+import net.minecraft.item.ItemStack;
 import net.minecraft.item.Items;
+import net.minecraft.item.PickaxeItem;
 import net.minecraft.nbt.NbtCompound;
 import net.minecraft.server.world.ServerWorld;
 import net.minecraft.sound.SoundEvents;
@@ -29,6 +33,7 @@ import net.minecraft.util.Identifier;
 import net.minecraft.util.hit.HitResult;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.math.Box;
+import net.minecraft.util.math.ChunkSectionPos;
 import net.minecraft.util.math.Vec3d;
 import net.minecraft.util.math.random.Random;
 import net.minecraft.util.profiler.Profiler;
@@ -41,14 +46,21 @@ public class WeepingAngelEntity extends HostileEntity {
     private static final TrackedData<Boolean> ISNTSTONE = DataTracker.registerData(WeepingAngelEntity.class, TrackedDataHandlerRegistry.BOOLEAN);
     private static final TrackedData<Boolean> ACTIVE = DataTracker.registerData(WeepingAngelEntity.class, TrackedDataHandlerRegistry.BOOLEAN);
     private static final TrackedData<String> ANGEL = DataTracker.registerData(WeepingAngelEntity.class, TrackedDataHandlerRegistry.STRING);
+    private static final TrackedDataHandler<WeepingAngelEntity.AngelPose> ANGEL_POSES = TrackedDataHandler.ofEnum(WeepingAngelEntity.AngelPose.class);
+    private static final TrackedData<AngelPose> ANGEL_POSE = DataTracker.registerData(WeepingAngelEntity.class, ANGEL_POSES);
     public WeepingAngelEntity(EntityType<? extends HostileEntity> entityType, World world) {
         super(entityType, world);
         this.lookControl = new WeepingAngelEntity.AngelLookControl(this);
         this.moveControl = new WeepingAngelEntity.AngelMoveControl(this);
         this.jumpControl = new WeepingAngelEntity.AngelJumpControl(this);
+        this.setAngelPose(AngelPose.HIDING);
         MobNavigation mobNav = (MobNavigation) this.getNavigation();
         mobNav.setCanSwim(true);
         this.experiencePoints = 0;
+    }
+
+    static {
+        TrackedDataHandlerRegistry.register(ANGEL_POSES);
     }
 
     @Override
@@ -62,12 +74,30 @@ public class WeepingAngelEntity extends HostileEntity {
         this.dataTracker.startTracking(ISNTSTONE, true);
         this.dataTracker.startTracking(ACTIVE, false);
         this.dataTracker.startTracking(ANGEL, AngelRegistry.STONE.id().toString());
+        this.dataTracker.startTracking(ANGEL_POSE, AngelPose.DEFAULT);
     }
 
     @Override
     public void writeCustomDataToNbt(NbtCompound nbt) {
         super.writeCustomDataToNbt(nbt);
         nbt.putString("Angel", this.getAngelData());
+    }
+
+    @Override
+    protected void attackLivingEntity(LivingEntity target) {
+        if (target instanceof PlayerEntity player) {
+            if (player.getHealth() == player.getMaxHealth()) {
+                super.attackLivingEntity(target);
+                return;
+            }
+            int randomX = (int) (this.getWorld().getRandom().nextInt() *
+                                this.getWorld().getWorldBorder().getSize() - this.getWorld().getWorldBorder().getSize() / 2);
+            int randomZ = (int) (this.getWorld().getRandom().nextInt() *
+                                this.getWorld().getWorldBorder().getSize() - this.getWorld().getWorldBorder().getSize() / 2);
+            player.teleport(randomX, player.getWorld().getChunk(ChunkSectionPos.getSectionCoord(randomX), ChunkSectionPos.getSectionCoord(randomZ))
+                    .sampleHeightmap(Heightmap.Type.MOTION_BLOCKING_NO_LEAVES, randomX & 15, randomZ & 15) + 1, randomZ);
+        }
+        super.attackLivingEntity(target);
     }
 
     @Override
@@ -78,8 +108,8 @@ public class WeepingAngelEntity extends HostileEntity {
         }
     }
 
-    public void setAngel(Angel dalek) {
-        this.dataTracker.set(ANGEL, dalek.id().toString());
+    public void setAngel(Angel angel) {
+        this.dataTracker.set(ANGEL, angel.id().toString());
     }
 
     public String getAngelData() {
@@ -111,6 +141,22 @@ public class WeepingAngelEntity extends HostileEntity {
     }
 
     @Override
+    public boolean damage(DamageSource damageSource, float amount) {
+        if (damageSource.getSource() instanceof PlayerEntity player) {
+            ItemStack stack = player.getMainHandStack();
+            if (stack.getItem() instanceof PickaxeItem) {
+                return super.damage(this.getWorld().getDamageSources().inWall(), amount);
+            }
+        }
+        return false;
+    }
+
+    /*@Override
+    public boolean canHit() {
+        return this.isntStone();
+    }*/
+
+    @Override
     protected void mobTick() {
         Profiler profiler = this.getWorld().getProfiler();
         profiler.push("angelBrain");
@@ -130,7 +176,7 @@ public class WeepingAngelEntity extends HostileEntity {
                     this.playSound(SoundEvents.BLOCK_GRINDSTONE_USE, 1.0F, 1.0F);
                 } else {
                     this.stopMovement();
-                    this.playSound(SoundEvents.BLOCK_SMITHING_TABLE_USE, 1.0F, 0.1F);
+                    this.playSound(SoundEvents.BLOCK_GRINDSTONE_USE, 1.0F, 0.1F);
                 }
             }
 
@@ -170,7 +216,7 @@ public class WeepingAngelEntity extends HostileEntity {
                 if (this.canTarget(playerEntity) && !this.isTeammate(playerEntity)) {
                     bl2 = true;
                     boolean isLookingAtMe = this.isEntityLookingAtMe(
-                            playerEntity, 0.5, false, true,
+                            playerEntity, 0.5, false,
                             this.getEyeY(), this.getY() + 0.5 * this.getScaleFactor(), (this.getEyeY() + this.getY()) / 2.0);
 
                     if (isLookingAtMe) {
@@ -192,7 +238,7 @@ public class WeepingAngelEntity extends HostileEntity {
         return true;
     }
 
-    public boolean isEntityLookingAtMe(LivingEntity entity, double d, boolean bl, boolean visualShape, double... checkedYs) {
+    public boolean isEntityLookingAtMe(LivingEntity entity, double d, boolean bl, double... checkedYs) {
         Vec3d vec3d = entity.getRotationVec(1.0F).normalize();
 
         for (double e : checkedYs) {
@@ -217,13 +263,19 @@ public class WeepingAngelEntity extends HostileEntity {
     public void activate(PlayerEntity player) {
         this.getBrain().remember(MemoryModuleType.ATTACK_TARGET, player);
         this.emitGameEvent(GameEvent.ENTITY_INTERACT);
+        this.setAngelPose(AngelPose.MOVING);
         this.setActive(true);
     }
 
     public void deactivate() {
         this.getBrain().forget(MemoryModuleType.ATTACK_TARGET);
         this.emitGameEvent(GameEvent.ENTITY_INTERACT);
+        this.setAngelPose(this.getRandomAngelPose());
         this.setActive(false);
+    }
+
+    public AngelPose getRandomAngelPose() {
+        return AngelPose.values()[this.getRandom().nextInt(AngelPose.values().length)];
     }
 
     public void setActive(boolean active) {
@@ -248,6 +300,14 @@ public class WeepingAngelEntity extends HostileEntity {
 
     public boolean isntStone() {
         return this.dataTracker.get(ISNTSTONE);
+    }
+
+    public AngelPose getAngelPose() {
+        return this.dataTracker.get(ANGEL_POSE);
+    }
+
+    public void setAngelPose(AngelPose pose) {
+        this.dataTracker.set(ANGEL_POSE, pose);
     }
 
     class AngelLandPathNodeMaker extends LandPathNodeMaker {
@@ -327,5 +387,15 @@ public class WeepingAngelEntity extends HostileEntity {
         public void tick() {
             WeepingAngelEntity.this.setJumping(false);
         }
+    }
+
+    public enum AngelPose {
+        DEFAULT,
+        MOVING,
+        HIDING,
+        ATTACKING,
+        ANGRY,
+        AFRAID,
+        RETREATING;
     }
 }
