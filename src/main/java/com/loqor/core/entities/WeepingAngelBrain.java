@@ -5,17 +5,13 @@ import com.google.common.collect.ImmutableSet;
 import com.loqor.core.entities.brain.tasks.MoveToTargetTask;
 import com.loqor.core.entities.brain.tasks.UpdateLookControlTask;
 import com.mojang.datafixers.util.Pair;
-import net.minecraft.entity.LivingEntity;
 import net.minecraft.entity.ai.brain.Activity;
 import net.minecraft.entity.ai.brain.Brain;
 import net.minecraft.entity.ai.brain.MemoryModuleType;
 import net.minecraft.entity.ai.brain.sensor.Sensor;
 import net.minecraft.entity.ai.brain.sensor.SensorType;
 import net.minecraft.entity.ai.brain.task.*;
-import net.minecraft.server.world.ServerWorld;
 import net.minecraft.util.math.intprovider.UniformIntProvider;
-
-import java.util.Optional;
 
 public class WeepingAngelBrain {
     protected static final ImmutableList<? extends SensorType<? extends Sensor<? super WeepingAngelEntity>>> SENSORS = ImmutableList.of(
@@ -35,11 +31,8 @@ public class WeepingAngelBrain {
     );
 
     static void addCoreTasks(Brain<WeepingAngelEntity> brain) {
-        brain.setTaskList(Activity.CORE, 0, ImmutableList.of(new StayAboveWaterTask(0.8F) {
-            private boolean shouldRun(ServerWorld serverWorld, WeepingAngelEntity angelEntity) {
-                return angelEntity.isntStone() && super.shouldRun(serverWorld, angelEntity);
-            }
-        }, new UpdateLookControlTask(45, 90), new MoveToTargetTask()));
+        brain.setTaskList(Activity.CORE, 0, ImmutableList.of(new StayAboveWaterTask(0.8F),
+                new UpdateLookControlTask(45, 90), new MoveToTargetTask()));
     }
 
     static void addIdleTasks(Brain<WeepingAngelEntity> brain) {
@@ -48,7 +41,7 @@ public class WeepingAngelBrain {
                 10,
                 ImmutableList.of(
                         UpdateAttackTargetTask.create(WeepingAngelEntity::isRemoved,  e ->
-                                        ((Optional<? extends LivingEntity>) brain.getOptionalRegisteredMemory(MemoryModuleType.NEAREST_VISIBLE_PLAYER))
+                                brain.getOptionalRegisteredMemory(MemoryModuleType.NEAREST_VISIBLE_PLAYER)
                         ),
                         LookAtMobWithIntervalTask.follow(8.0F, UniformIntProvider.create(30, 60)),
                         new RandomTask<>(ImmutableList.of(

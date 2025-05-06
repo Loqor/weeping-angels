@@ -7,9 +7,6 @@ import dev.amble.lib.datagen.lang.LanguageType;
 import net.fabricmc.fabric.api.datagen.v1.DataGeneratorEntrypoint;
 import net.fabricmc.fabric.api.datagen.v1.FabricDataGenerator;
 import net.fabricmc.fabric.api.datagen.v1.FabricDataOutput;
-import net.minecraft.registry.RegistryWrapper;
-
-import java.util.concurrent.CompletableFuture;
 
 public class LoqorsWeepingAngelsDataGenerator implements DataGeneratorEntrypoint {
 	@Override
@@ -20,11 +17,11 @@ public class LoqorsWeepingAngelsDataGenerator implements DataGeneratorEntrypoint
 
 	public void generateENUSLanguage(FabricDataGenerator.Pack pack) {
 		pack.addProvider(
-				((output, registriesFuture) -> addEnglishTranslations(output, registriesFuture, LanguageType.EN_US)));
+				((output, registriesFuture) -> addEnglishTranslations(output, LanguageType.EN_US)));
 	}
 
 	public AmbleLanguageProvider addEnglishTranslations(FabricDataOutput output,
-														CompletableFuture<RegistryWrapper.WrapperLookup> registriesFuture, LanguageType languageType) {
+														LanguageType languageType) {
 		AmbleLanguageProvider provider = new AmbleLanguageProvider(output, languageType);
 
 		provider.addTranslation(LWAItems.ANGEL_SPAWNER_ITEM, "Angel Spawner");

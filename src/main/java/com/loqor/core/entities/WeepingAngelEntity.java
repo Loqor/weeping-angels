@@ -34,8 +34,6 @@ import net.minecraft.world.event.GameEvent;
 import java.util.List;
 
 public class WeepingAngelEntity extends HostileEntity {
-    private int playerIntersectionTimer;
-    private final TargetPredicate targetPredicate = TargetPredicate.createAttackable().setBaseMaxDistance(64.0);
     private static final TrackedData<Boolean> ISNTSTONE = DataTracker.registerData(WeepingAngelEntity.class, TrackedDataHandlerRegistry.BOOLEAN);
     private static final TrackedData<Boolean> ACTIVE = DataTracker.registerData(WeepingAngelEntity.class, TrackedDataHandlerRegistry.BOOLEAN);
     public WeepingAngelEntity(EntityType<? extends HostileEntity> entityType, World world) {
@@ -88,23 +86,6 @@ public class WeepingAngelEntity extends HostileEntity {
         profiler.pop();
         WeepingAngelBrain.updateActivities(this);
     }
-
-    /*public boolean isStuckWithPlayer() {
-        List<PlayerEntity> list = this.brain.getOptionalRegisteredMemory(MemoryModuleType.NEAREST_PLAYERS).orElse(List.of());
-        if (!list.isEmpty()) {
-            Box box = this.getBoundingBox();
-
-            for (PlayerEntity playerEntity : list) {
-                if (box.contains(playerEntity.getEyePos())) {
-                    this.playerIntersectionTimer++;
-                    return this.playerIntersectionTimer > 4;
-                }
-            }
-
-        }
-        this.playerIntersectionTimer = 0;
-        return false;
-    }*/
 
     @Override
     public void tickMovement() {
@@ -204,14 +185,12 @@ public class WeepingAngelEntity extends HostileEntity {
     public void activate(PlayerEntity player) {
         this.getBrain().remember(MemoryModuleType.ATTACK_TARGET, player);
         this.emitGameEvent(GameEvent.ENTITY_INTERACT);
-        //this.playSound(SoundEvents.ENTITY_TNT_PRIMED, 1.0f, 1.0f);
         this.setActive(true);
     }
 
     public void deactivate() {
         this.getBrain().forget(MemoryModuleType.ATTACK_TARGET);
         this.emitGameEvent(GameEvent.ENTITY_INTERACT);
-        //this.playSound(SoundEvents.ITEM_LODESTONE_COMPASS_LOCK, 1.0f, 0.1f);
         this.setActive(false);
     }
 
@@ -244,13 +223,6 @@ public class WeepingAngelEntity extends HostileEntity {
 
         @Override
         public PathNodeType getDefaultNodeType(BlockView world, int x, int y, int z) {
-            /*BlockPos blockPos = WeepingAngelEntity.this.getHomePos();
-            if (blockPos == null) {
-                return super.getDefaultNodeType(world, x, y, z);
-            } else {
-                double d = blockPos.getSquaredDistance(new Vec3i(x, y, z));
-                return d > 1024.0 && d >= blockPos.getSquaredDistance(context.getEntityPos()) ? PathNodeType.BLOCKED : super.getDefaultNodeType(context, x, y, z);
-            }*/
             return super.getDefaultNodeType(world, x, y, z);
         }
     }

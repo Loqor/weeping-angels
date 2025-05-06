@@ -122,10 +122,6 @@ public class AngelSpawnerItem extends Item {
         }
     }
 
-    public boolean isOfSameEntityType(@Nullable NbtCompound nbt, EntityType<?> type) {
-        return Objects.equals(this.getEntityType(nbt), type);
-    }
-
     public EntityType<?> getEntityType(@Nullable NbtCompound nbt) {
         if (nbt != null && nbt.contains("EntityTag", NbtElement.COMPOUND_TYPE)) {
             NbtCompound nbtCompound = nbt.getCompound("EntityTag");

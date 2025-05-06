@@ -14,14 +14,11 @@ import org.slf4j.LoggerFactory;
 
 public class LoqorsWeepingAngels implements ModInitializer {
 	public static final String MOD_ID = "loqors-weeping-angels";
-
-	// This logger is used to write text to the console and the log file.
-	// It is considered best practice to use your mod id as the logger's name.
-	// That way, it's clear which mod wrote info, warnings, and errors.
 	public static final Logger LOGGER = LoggerFactory.getLogger(MOD_ID);
 
 	@Override
 	public void onInitialize() {
+		LOGGER.info("Loqor's Weeping Angels mod is initializing...");
 		RegistryContainer.register(LWAEntities.class, MOD_ID);
 		RegistryContainer.register(LWAItems.class, MOD_ID);
 
