@@ -27,7 +27,7 @@ public class LoqorsWeepingAngelsDataGenerator implements DataGeneratorEntrypoint
 
 		provider.addTranslation(LWAItems.ANGEL_SPAWNER_ITEM, "Angel Spawner");
 		provider.addTranslation(LWAEntities.WEEPING_ANGEL.getTranslationKey(), "Weeping Angel");
-		provider.addTranslation("death.attack.angel_neck_snap_damage_type", "%1$s had their neck snapped by a Weeping Angel!");
+		provider.addTranslation("death.attack.angel_neck_snap_damage_type.player", "%1$s had their neck snapped by a Weeping Angel!");
 
 		return provider;
 	}
