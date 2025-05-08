@@ -1,5 +1,6 @@
-package com.loqor.client;
+package com.loqor.core.datagen;
 
+import com.loqor.core.LWADamageTypes;
 import com.loqor.core.LWAEntities;
 import com.loqor.core.LWAItems;
 import dev.amble.lib.datagen.lang.AmbleLanguageProvider;
@@ -26,6 +27,7 @@ public class LoqorsWeepingAngelsDataGenerator implements DataGeneratorEntrypoint
 
 		provider.addTranslation(LWAItems.ANGEL_SPAWNER_ITEM, "Angel Spawner");
 		provider.addTranslation(LWAEntities.WEEPING_ANGEL.getTranslationKey(), "Weeping Angel");
+		provider.addTranslation(LWADamageTypes.ANGEL_NECK_SNAP.getRegistry().toTranslationKey(), "%s had their neck snapped by an Angel");
 
 		return provider;
 	}

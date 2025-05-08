@@ -79,7 +79,7 @@ public class WeepingAngelBrain {
     }
 
     public static void updateActivities(WeepingAngelEntity angel) {
-        if (!angel.isntStone()) {
+        if (!angel.isNotStone()) {
             angel.getBrain().resetPossibleActivities();
         } else {
             angel.getBrain().resetPossibleActivities(ImmutableList.of(Activity.FIGHT, Activity.IDLE));

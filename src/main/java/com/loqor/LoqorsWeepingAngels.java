@@ -39,7 +39,6 @@ public class LoqorsWeepingAngels implements ModInitializer {
 	// This is for registering the entity attributes
 	public void registerEntityAttributes() {
 		FabricDefaultAttributeRegistry.register(LWAEntities.WEEPING_ANGEL,
-				WeepingAngelEntity.createMobAttributes().add(EntityAttributes.GENERIC_MAX_HEALTH, 40.0D)
-						.add(EntityAttributes.GENERIC_MOVEMENT_SPEED, 0.25D).add(EntityAttributes.GENERIC_ATTACK_DAMAGE, 6.0D));
+				WeepingAngelEntity.getAngelAttributes());
 	}
 }

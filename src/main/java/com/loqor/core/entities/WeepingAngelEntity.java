@@ -1,54 +1,57 @@
 package com.loqor.core.entities;
 
+import com.loqor.core.LWADamageTypes;
 import com.loqor.core.angels.Angel;
 import com.loqor.core.angels.AngelRegistry;
+import com.loqor.core.util.StackUtil;
 import com.mojang.serialization.Dynamic;
 import dev.drtheo.scheduler.api.Scheduler;
 import dev.drtheo.scheduler.api.TimeUnit;
-import net.minecraft.block.WearableCarvedPumpkinBlock;
+import net.minecraft.block.BlockState;
 import net.minecraft.entity.*;
 import net.minecraft.entity.ai.TargetPredicate;
 import net.minecraft.entity.ai.brain.Brain;
 import net.minecraft.entity.ai.brain.MemoryModuleType;
-import net.minecraft.entity.ai.brain.Schedule;
 import net.minecraft.entity.ai.control.BodyControl;
 import net.minecraft.entity.ai.control.JumpControl;
 import net.minecraft.entity.ai.control.LookControl;
 import net.minecraft.entity.ai.control.MoveControl;
 import net.minecraft.entity.ai.pathing.*;
+import net.minecraft.entity.attribute.DefaultAttributeContainer;
+import net.minecraft.entity.attribute.EntityAttributes;
 import net.minecraft.entity.damage.DamageSource;
 import net.minecraft.entity.data.DataTracker;
 import net.minecraft.entity.data.TrackedData;
 import net.minecraft.entity.data.TrackedDataHandler;
 import net.minecraft.entity.data.TrackedDataHandlerRegistry;
-import net.minecraft.entity.mob.CreeperEntity;
 import net.minecraft.entity.mob.HostileEntity;
 import net.minecraft.entity.player.PlayerEntity;
+import net.minecraft.item.Item;
 import net.minecraft.item.ItemStack;
 import net.minecraft.item.Items;
 import net.minecraft.item.PickaxeItem;
 import net.minecraft.nbt.NbtCompound;
-import net.minecraft.registry.tag.ItemTags;
+import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.world.ServerWorld;
+import net.minecraft.sound.SoundEvent;
 import net.minecraft.sound.SoundEvents;
 import net.minecraft.util.Identifier;
 import net.minecraft.util.hit.HitResult;
 import net.minecraft.util.math.BlockPos;
-import net.minecraft.util.math.Box;
 import net.minecraft.util.math.ChunkSectionPos;
 import net.minecraft.util.math.Vec3d;
-import net.minecraft.util.math.random.Random;
 import net.minecraft.util.profiler.Profiler;
 import net.minecraft.world.*;
-import net.minecraft.world.event.GameEvent;
 import org.jetbrains.annotations.Nullable;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.function.Predicate;
 import java.util.stream.Stream;
 
 public class WeepingAngelEntity extends HostileEntity {
-    private static final TrackedData<Boolean> ISNTSTONE = DataTracker.registerData(WeepingAngelEntity.class, TrackedDataHandlerRegistry.BOOLEAN);
+    private static final List<Item> ANGEL_DROPS = new ArrayList<>();
+    private static final TrackedData<Boolean> ISNOTSTONE = DataTracker.registerData(WeepingAngelEntity.class, TrackedDataHandlerRegistry.BOOLEAN);
     private static final TrackedData<Boolean> ACTIVE = DataTracker.registerData(WeepingAngelEntity.class, TrackedDataHandlerRegistry.BOOLEAN);
     private static final TrackedData<String> ANGEL = DataTracker.registerData(WeepingAngelEntity.class, TrackedDataHandlerRegistry.STRING);
     private static final TrackedDataHandler<WeepingAngelEntity.AngelPose> ANGEL_POSES = TrackedDataHandler.ofEnum(WeepingAngelEntity.AngelPose.class);
@@ -64,12 +67,43 @@ public class WeepingAngelEntity extends HostileEntity {
     };
     public WeepingAngelEntity(EntityType<? extends HostileEntity> entityType, World world) {
         super(entityType, world);
+        ANGEL_DROPS.add(Items.STONE);
+        ANGEL_DROPS.add(Items.COBBLESTONE);
+        ANGEL_DROPS.add(Items.LODESTONE);
+        ANGEL_DROPS.add(Items.STONE_BRICKS);
+        ANGEL_DROPS.add(Items.MOSSY_COBBLESTONE);
+        ANGEL_DROPS.add(Items.DEEPSLATE);
+        ANGEL_DROPS.add(Items.DEEPSLATE_BRICKS);
+        ANGEL_DROPS.add(Items.DEEPSLATE_TILES);
+        ANGEL_DROPS.add(Items.OAK_SAPLING); // THE ANGELS ARE FULL OF FORESTS - Loqor
+        ANGEL_DROPS.add(Items.COBBLED_DEEPSLATE);
+        ANGEL_DROPS.add(Items.ANDESITE);
+        ANGEL_DROPS.add(Items.POLISHED_ANDESITE);
+        ANGEL_DROPS.add(Items.GRANITE);
+        ANGEL_DROPS.add(Items.POLISHED_GRANITE);
+        ANGEL_DROPS.add(Items.DIORITE);
+        ANGEL_DROPS.add(Items.POLISHED_DIORITE);
         this.lookControl = new WeepingAngelEntity.AngelLookControl(this);
         this.moveControl = new WeepingAngelEntity.AngelMoveControl(this);
         this.jumpControl = new WeepingAngelEntity.AngelJumpControl(this);
         MobNavigation mobNav = (MobNavigation) this.getNavigation();
         mobNav.setCanSwim(true);
         this.experiencePoints = 0;
+    }
+
+    public static DefaultAttributeContainer getAngelAttributes() {
+        return WeepingAngelEntity.createMobAttributes().add(EntityAttributes.GENERIC_MAX_HEALTH, 40.0D)
+                .add(EntityAttributes.GENERIC_MOVEMENT_SPEED, 0.4D)
+                .add(EntityAttributes.GENERIC_ATTACK_DAMAGE, 6.0D).build();
+    }
+
+    @Override
+    public float getMovementSpeed() {
+        // Make the angels faster if the moon is BIG - Loqor
+        if (this.getWorld().getMoonSize() > 0.9F) {
+            return super.getMovementSpeed() * 1.25F;
+        }
+        return super.getMovementSpeed();
     }
 
     @Nullable
@@ -111,7 +145,7 @@ public class WeepingAngelEntity extends HostileEntity {
     @Override
     protected void initDataTracker() {
         super.initDataTracker();
-        this.dataTracker.startTracking(ISNTSTONE, true);
+        this.dataTracker.startTracking(ISNOTSTONE, true);
         this.dataTracker.startTracking(ACTIVE, false);
         this.dataTracker.startTracking(ANGEL, AngelRegistry.STONE.id().toString());
         this.dataTracker.startTracking(ANGEL_POSE, AngelPose.HIDING);
@@ -125,18 +159,32 @@ public class WeepingAngelEntity extends HostileEntity {
 
     @Override
     public void onAttacking(Entity target) {
+        if (target.getWorld().isClient()) return;
         if (target instanceof PlayerEntity player) {
             if (player.getHealth() == player.getMaxHealth()) {
                 super.onAttacking(target);
                 return;
             }
-            int randomX = player.getBlockX() * this.getWorld().getRandom().nextBetween(-1500, 1500);
-            int randomZ = player.getBlockZ() * this.getWorld().getRandom().nextBetween(-1500, 1500);
-            player.teleport(randomX, player.getWorld().getChunk(ChunkSectionPos.getSectionCoord(randomX), ChunkSectionPos.getSectionCoord(randomZ))
-                    .sampleHeightmap(Heightmap.Type.MOTION_BLOCKING_NO_LEAVES, randomX & 15, randomZ & 15) + 1, randomZ);
-            Scheduler.get().runTaskLater(() ->
-                    player.playSound(SoundEvents.ITEM_CHORUS_FRUIT_TELEPORT, 1.0F, 2.0F),
-                    TimeUnit.SECONDS, 1);
+            if (this.getWorld().getRandom().nextBoolean()) {
+                MinecraftServer server = target.getWorld().getServer();
+                if (server == null) {
+                    super.onAttacking(target);
+                    return;
+                }
+                server.execute(() -> {
+                    int randomX = player.getBlockX() + this.getWorld().getRandom().nextBetween(-1500, 1500);
+                    int randomZ = player.getBlockZ() + this.getWorld().getRandom().nextBetween(-1500, 1500);
+                    player.teleport(randomX, player.getWorld().getChunk(ChunkSectionPos.getSectionCoord(randomX), ChunkSectionPos.getSectionCoord(randomZ))
+                            .sampleHeightmap(Heightmap.Type.MOTION_BLOCKING_NO_LEAVES, randomX & 15, randomZ & 15) + 1, randomZ);
+                    Scheduler.get().runTaskLater(() ->
+                                    player.playSound(SoundEvents.ITEM_CHORUS_FRUIT_TELEPORT, 1.0F, 2.0F),
+                            TimeUnit.SECONDS, 2);
+                });
+            } else {
+                player.damage(LWADamageTypes.of(target.getWorld(),
+                        LWADamageTypes.ANGEL_NECK_SNAP), Float.MAX_VALUE);
+                player.playSound(SoundEvents.ENTITY_PLAYER_BIG_FALL, 1.0F, 1.5F);
+            }
         }
         super.onAttacking(target);
     }
@@ -207,28 +255,38 @@ public class WeepingAngelEntity extends HostileEntity {
     }
 
     @Override
+    protected void playStepSound(BlockPos pos, BlockState state) {
+        this.playSound(SoundEvents.BLOCK_GRINDSTONE_USE, 0.2f, 1f);
+    }
+
+    @Override
     public void tickMovement() {
         if (!this.getWorld().isClient) {
             if (this.isAiDisabled() ||
                     !this.getAngelPose().equals(AngelPose.MOVING))
                 this.stopMovement();
-            boolean bl = this.dataTracker.get(ISNTSTONE);
+            boolean bl = this.dataTracker.get(ISNOTSTONE);
             boolean bl2 = this.shouldBeNotStone();
             if (bl2 != bl) {
                 if (bl2) {
                     this.setAngelPose(AngelPose.MOVING);
-                    this.playSound(SoundEvents.BLOCK_GRINDSTONE_USE, 1.0F, 1.0F);
+                    this.playSound(SoundEvents.BLOCK_STONE_BREAK, 0.5f, 1.0F);
                 } else {
                     this.setAngelPose(this.getRandomAngelPose());
                     this.stopMovement();
-                    this.playSound(SoundEvents.BLOCK_GRINDSTONE_USE, 1.0F, 0.1F);
+                    this.playSound(SoundEvents.BLOCK_STONE_PLACE, 0.5f, 0.1F);
                 }
             }
 
-            this.dataTracker.set(ISNTSTONE, bl2);
+            this.dataTracker.set(ISNOTSTONE, bl2);
         }
 
         super.tickMovement();
+    }
+
+    @Override
+    protected SoundEvent getHurtSound(DamageSource source) {
+        return SoundEvents.BLOCK_STONE_HIT;
     }
 
     public void stopMovement() {
@@ -245,24 +303,15 @@ public class WeepingAngelEntity extends HostileEntity {
 
     @Override
     public boolean canUsePortals() {
-        return this.isntStone();
+        return this.isNotStone();
     }
 
     @Override
-    protected boolean shouldDropLoot() {
-        return true;
-    }
-
-    @Override
-    protected void dropLoot(DamageSource damageSource, boolean causedByPlayer) {
-        super.dropLoot(damageSource, causedByPlayer);
-        Entity entity = damageSource.getAttacker();
-        if (entity instanceof PlayerEntity player) {
-            ItemStack stack = player.getMainHandStack();
-            if (stack.getItem() instanceof PickaxeItem) {
-                this.dropStack(new ItemStack(Items.LODESTONE));
-            }
-        }
+    public void onDeath(DamageSource damageSource) {
+        super.onDeath(damageSource);
+        ItemStack stack = new ItemStack(ANGEL_DROPS.get(this.getWorld().getRandom().nextBetween(0, ANGEL_DROPS.size() - 1)));
+        stack.setCount(this.getWorld().getRandom().nextBetween(1, 4));
+        StackUtil.spawn(this.getWorld(), this.getBlockPos(), stack);
     }
 
     public boolean shouldBeNotStone() {
@@ -338,11 +387,6 @@ public class WeepingAngelEntity extends HostileEntity {
         }
     }
 
-    public static boolean canSpawn(EntityType<WeepingAngelEntity> weepingAngelEntityEntityType,
-                                   ServerWorldAccess serverWorldAccess, SpawnReason spawnReason, BlockPos blockPos, Random random) {
-        return serverWorldAccess.getLightLevel(LightType.BLOCK, blockPos) <= 8 && canSpawnIgnoreLightLevel(weepingAngelEntityEntityType, serverWorldAccess, spawnReason, blockPos, random);
-    }
-
     public void activate(PlayerEntity player) {
         if (!this.isActive()) {
             this.getBrain().remember(MemoryModuleType.ATTACK_TARGET, player);
@@ -372,18 +416,18 @@ public class WeepingAngelEntity extends HostileEntity {
 
     @Override
     public boolean isPushable() {
-        return super.isPushable() && this.isntStone();
+        return super.isPushable() && this.isNotStone();
     }
 
     @Override
     public void addVelocity(double deltaX, double deltaY, double deltaZ) {
-        if (this.isntStone()) {
+        if (this.isNotStone()) {
             super.addVelocity(deltaX, deltaY, deltaZ);
         }
     }
 
-    public boolean isntStone() {
-        return this.dataTracker.get(ISNTSTONE);
+    public boolean isNotStone() {
+        return this.dataTracker.get(ISNOTSTONE);
     }
 
     public AngelPose getAngelPose() {
@@ -410,7 +454,7 @@ public class WeepingAngelEntity extends HostileEntity {
 
         @Override
         public void tick() {
-            if (WeepingAngelEntity.this.isntStone()) {
+            if (WeepingAngelEntity.this.isNotStone()) {
                 super.tick();
             }
         }
@@ -423,7 +467,7 @@ public class WeepingAngelEntity extends HostileEntity {
 
         @Override
         public void tick() {
-            if (WeepingAngelEntity.this.isntStone()) {
+            if (WeepingAngelEntity.this.isNotStone()) {
                 super.tick();
             }
         }
@@ -436,7 +480,7 @@ public class WeepingAngelEntity extends HostileEntity {
 
         @Override
         public void tick() {
-            if (WeepingAngelEntity.this.isntStone()) {
+            if (WeepingAngelEntity.this.isNotStone()) {
                 super.tick();
             }
         }
@@ -449,7 +493,7 @@ public class WeepingAngelEntity extends HostileEntity {
 
         @Override
         public void tick() {
-            if (WeepingAngelEntity.this.isntStone()) {
+            if (WeepingAngelEntity.this.isNotStone()) {
                 super.tick();
             }
         }
@@ -469,7 +513,7 @@ public class WeepingAngelEntity extends HostileEntity {
 
         @Override
         public void tick() {
-            if (WeepingAngelEntity.this.isntStone()) {
+            if (WeepingAngelEntity.this.isNotStone()) {
                 super.tick();
             } else {
                 WeepingAngelEntity.this.setJumping(false);

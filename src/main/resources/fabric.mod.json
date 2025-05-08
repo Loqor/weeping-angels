@@ -22,7 +22,7 @@
 			"com.loqor.client.LoqorsWeepingAngelsClient"
 		],
 		"fabric-datagen": [
-			"com.loqor.client.LoqorsWeepingAngelsDataGenerator"
+			"com.loqor.core.datagen.LoqorsWeepingAngelsDataGenerator"
 		],
 		"amblekit-main": [
 			"com.loqor.init.AmbleInitializer"
