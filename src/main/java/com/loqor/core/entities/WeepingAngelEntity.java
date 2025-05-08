@@ -7,7 +7,9 @@ import com.loqor.core.util.StackUtil;
 import com.mojang.serialization.Dynamic;
 import dev.drtheo.scheduler.api.Scheduler;
 import dev.drtheo.scheduler.api.TimeUnit;
+import net.minecraft.block.Block;
 import net.minecraft.block.BlockState;
+import net.minecraft.block.Blocks;
 import net.minecraft.entity.*;
 import net.minecraft.entity.ai.TargetPredicate;
 import net.minecraft.entity.ai.brain.Brain;
@@ -38,23 +40,24 @@ import net.minecraft.item.ItemStack;
 import net.minecraft.item.Items;
 import net.minecraft.item.PickaxeItem;
 import net.minecraft.nbt.NbtCompound;
+import net.minecraft.particle.ParticleTypes;
 import net.minecraft.predicate.entity.EntityPredicates;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.world.ServerWorld;
+import net.minecraft.sound.SoundCategory;
 import net.minecraft.sound.SoundEvent;
 import net.minecraft.sound.SoundEvents;
 import net.minecraft.util.Identifier;
 import net.minecraft.util.hit.HitResult;
 import net.minecraft.util.math.BlockPos;
+import net.minecraft.util.math.Box;
 import net.minecraft.util.math.ChunkSectionPos;
 import net.minecraft.util.math.Vec3d;
 import net.minecraft.util.profiler.Profiler;
 import net.minecraft.world.*;
 import org.jetbrains.annotations.Nullable;
 
-import java.util.ArrayList;
-import java.util.EnumSet;
-import java.util.List;
+import java.util.*;
 import java.util.function.Predicate;
 import java.util.stream.Stream;
 
@@ -76,6 +79,21 @@ public class WeepingAngelEntity extends HostileEntity {
             return true;
         }
     };
+    private static final Set<Block> LIGHT_SOURCES = Set.of(
+            Blocks.TORCH,
+            Blocks.WALL_TORCH,
+            Blocks.LANTERN,
+            Blocks.SOUL_TORCH,
+            Blocks.SOUL_LANTERN,
+            Blocks.GLOWSTONE,
+            Blocks.REDSTONE_LAMP,
+            Blocks.SEA_LANTERN,
+            Blocks.END_ROD,
+            Blocks.SHROOMLIGHT
+    );
+    private final Map<BlockPos, Integer> flickeringLights = new HashMap<>();
+    private int extinguishCooldown = 100;
+
     public WeepingAngelEntity(EntityType<? extends HostileEntity> entityType, World world) {
         super(entityType, world);
         ANGEL_DROPS.add(Items.STONE);
@@ -158,6 +176,16 @@ public class WeepingAngelEntity extends HostileEntity {
     }
 
     @Override
+    public void tick() {
+        super.tick();
+
+        if (!this.getWorld().isClient) {
+            extinguishNearbyLights();
+            processFlickeringLights();
+        }
+    }
+
+    @Override
     protected void initDataTracker() {
         super.initDataTracker();
         this.dataTracker.startTracking(ISNOTSTONE, true);
@@ -171,6 +199,7 @@ public class WeepingAngelEntity extends HostileEntity {
         super.writeCustomDataToNbt(nbt);
         nbt.putString(ANGEL_KEY, this.getAngelData());
     }
+
 
     @Override
     public void onAttacking(Entity target) {
@@ -329,6 +358,48 @@ public class WeepingAngelEntity extends HostileEntity {
         return !this.isNotStone();
     }
 
+    private void extinguishNearbyLights() {
+        Box area = new Box(getBlockPos()).expand(5);
+        BlockPos min = new BlockPos((int) area.minX, (int) area.minY, (int) area.minZ);
+        BlockPos max = new BlockPos((int) area.maxX, (int) area.maxY, (int) area.maxZ);
+
+        for (BlockPos pos : BlockPos.iterate(min, max)) {
+            Block block = this.getWorld().getBlockState(pos).getBlock();
+            if (LIGHT_SOURCES.contains(block) && !flickeringLights.containsKey(pos)) {
+
+                flickeringLights.put(pos.toImmutable(), 40);
+                this.getWorld().playSound(null, pos, SoundEvents.BLOCK_FIRE_EXTINGUISH, SoundCategory.BLOCKS, 0.5F, 1.0F);
+                break;
+            }
+        }
+
+    }
+
+    private void processFlickeringLights() {
+        Iterator<Map.Entry<BlockPos, Integer>> iterator = flickeringLights.entrySet().iterator();
+        while (iterator.hasNext()) {
+            Map.Entry<BlockPos, Integer> entry = iterator.next();
+            BlockPos pos = entry.getKey();
+            int ticksLeft = entry.getValue();
+
+            if (ticksLeft <= 0) {
+                this.getWorld().breakBlock(pos, true);
+                iterator.remove();
+            } else {
+                // Flicker effect: spawn smoke every 5 ticks
+                if (ticksLeft % 5 == 0 && this.getWorld() instanceof ServerWorld serverWorld) {
+                    serverWorld.spawnParticles(
+                            ParticleTypes.SMOKE,
+                            pos.getX() + 0.5, pos.getY() + 0.7, pos.getZ() + 0.5,
+                            2, 0.1, 0.1, 0.1, 0.01
+                    );
+                }
+
+                entry.setValue(ticksLeft - 1);
+            }
+        }
+    }
+
     public boolean shouldBeNotStone() {
         TargetPredicate targetPredicate = TargetPredicate.createAttackable().setBaseMaxDistance(500.0);
         List<PlayerEntity> players = this.getWorld().getTargets(PlayerEntity.class,
@@ -357,8 +428,21 @@ public class WeepingAngelEntity extends HostileEntity {
 
         for (LivingEntity entity : players) {
             if (this.canTarget(entity) && !this.isTeammate(entity)) {
+
+                BlockPos entityPos = entity.getBlockPos();
+                int lightLevel = this.getWorld().getLightLevel(entityPos);
+
+                boolean tooDarkToSee = lightLevel < 2;
+
+                if (tooDarkToSee) {
+                    this.brain.remember(MemoryModuleType.ATTACK_TARGET, entity);
+                    this.deactivate();
+                    return true;
+                }
+
                 if ((isActive || !NOT_WEARING_GAZE_DISGUISE_PREDICATE.test(entity)) &&
                         this.isEntityLookingAtMe(entity, 0.5, false, this.getEyeY(), this.getY() + 0.5 * this.getScaleFactor(), (this.getEyeY() + this.getY()) / 2.0)) {
+
                     if (isActive) {
                         return false;
                     }
@@ -379,8 +463,11 @@ public class WeepingAngelEntity extends HostileEntity {
         if (isActive) {
             this.deactivate();
         }
+
         return true;
     }
+
+
 
     public boolean isEntityLookingAtMe(LivingEntity entity, double d, boolean bl, double... checkedYs) {
 
