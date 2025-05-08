@@ -5,6 +5,7 @@ import com.google.common.collect.ImmutableSet;
 import com.loqor.core.entities.brain.tasks.GoToLookTargetTask;
 import com.loqor.core.entities.brain.tasks.MoveToTargetTask;
 import com.loqor.core.entities.brain.tasks.UpdateLookControlTask;
+import com.loqor.core.entities.brain.tasks.RangedApproachTask;
 import com.mojang.datafixers.util.Pair;
 import net.minecraft.entity.ai.brain.Activity;
 import net.minecraft.entity.ai.brain.Brain;
@@ -45,7 +46,7 @@ public class WeepingAngelBrain {
                         UpdateAttackTargetTask.create(WeepingAngelEntity::isActive, e ->
                                 brain.getOptionalRegisteredMemory(MemoryModuleType.NEAREST_VISIBLE_TARGETABLE_PLAYER)
                         ),
-                        LookAtMobWithIntervalTask.follow(8.0F, UniformIntProvider.create(30, 60)),
+                        LookAtMobWithIntervalTask.follow(144.0F, UniformIntProvider.create(30, 60)),
                         new RandomTask<>(ImmutableList.of(
                                 Pair.of(StrollTask.create(0.3F), 2),
                                 Pair.of(GoToLookTargetTask.create(0.3F, 3), 2),

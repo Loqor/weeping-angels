@@ -16,6 +16,7 @@ import net.minecraft.entity.ai.control.BodyControl;
 import net.minecraft.entity.ai.control.JumpControl;
 import net.minecraft.entity.ai.control.LookControl;
 import net.minecraft.entity.ai.control.MoveControl;
+import net.minecraft.entity.ai.goal.*;
 import net.minecraft.entity.ai.pathing.*;
 import net.minecraft.entity.attribute.DefaultAttributeContainer;
 import net.minecraft.entity.attribute.EntityAttributes;
@@ -25,12 +26,19 @@ import net.minecraft.entity.data.TrackedData;
 import net.minecraft.entity.data.TrackedDataHandler;
 import net.minecraft.entity.data.TrackedDataHandlerRegistry;
 import net.minecraft.entity.mob.HostileEntity;
+import net.minecraft.entity.mob.IllagerEntity;
+import net.minecraft.entity.mob.MobEntity;
+import net.minecraft.entity.mob.VindicatorEntity;
+import net.minecraft.entity.passive.IronGolemEntity;
+import net.minecraft.entity.passive.MerchantEntity;
 import net.minecraft.entity.player.PlayerEntity;
+import net.minecraft.entity.raid.RaiderEntity;
 import net.minecraft.item.Item;
 import net.minecraft.item.ItemStack;
 import net.minecraft.item.Items;
 import net.minecraft.item.PickaxeItem;
 import net.minecraft.nbt.NbtCompound;
+import net.minecraft.predicate.entity.EntityPredicates;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.world.ServerWorld;
 import net.minecraft.sound.SoundEvent;
@@ -45,12 +53,15 @@ import net.minecraft.world.*;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.ArrayList;
+import java.util.EnumSet;
 import java.util.List;
 import java.util.function.Predicate;
 import java.util.stream.Stream;
 
 public class WeepingAngelEntity extends HostileEntity {
     private static final List<Item> ANGEL_DROPS = new ArrayList<>();
+    private static final Predicate<Difficulty> DOOR_BREAK_DIFFICULTY_CHECKER = difficulty -> difficulty == Difficulty.HARD;
+    private boolean canBreakDoors;
     private static final TrackedData<Boolean> ISNOTSTONE = DataTracker.registerData(WeepingAngelEntity.class, TrackedDataHandlerRegistry.BOOLEAN);
     private static final TrackedData<Boolean> ACTIVE = DataTracker.registerData(WeepingAngelEntity.class, TrackedDataHandlerRegistry.BOOLEAN);
     private static final TrackedData<String> ANGEL = DataTracker.registerData(WeepingAngelEntity.class, TrackedDataHandlerRegistry.STRING);
@@ -88,6 +99,10 @@ public class WeepingAngelEntity extends HostileEntity {
         this.jumpControl = new WeepingAngelEntity.AngelJumpControl(this);
         MobNavigation mobNav = (MobNavigation) this.getNavigation();
         mobNav.setCanSwim(true);
+        mobNav.setRangeMultiplier(4.0f);
+        mobNav.setCanWalkOverFences(true);
+        mobNav.setCanEnterOpenDoors(true);
+        mobNav.setCanPathThroughDoors(true);
         this.experiencePoints = 0;
     }
 
@@ -310,46 +325,55 @@ public class WeepingAngelEntity extends HostileEntity {
     }
 
     public boolean shouldBeNotStone() {
-        /*List<PlayerEntity> list = this.brain.getOptionalRegisteredMemory(MemoryModuleType.NEAREST_PLAYERS).orElse(List.of());*/
-        TargetPredicate targetPredicate = TargetPredicate.createAttackable().ignoreVisibility().setBaseMaxDistance(144.0D);
-        List<PlayerEntity> list = this.getWorld().getPlayers(targetPredicate, this, this.getBoundingBox().expand(144.0D));
-        boolean bl = this.isActive();
-        if (list.isEmpty()) {
-            if (bl) {
+        TargetPredicate targetPredicate = TargetPredicate.createAttackable().setBaseMaxDistance(500.0);
+        List<PlayerEntity> players = this.getWorld().getTargets(PlayerEntity.class,
+                targetPredicate, this, this.getBoundingBox().expand(1000.0));
+        List<WeepingAngelEntity> angels = this.getWorld().getTargets(WeepingAngelEntity.class,
+                targetPredicate, this, this.getBoundingBox().expand(1000.0));
+        boolean isActive = this.isActive();
+
+        if (players.isEmpty() && angels.isEmpty()) {
+            if (isActive) {
                 this.deactivate();
             }
-
             return true;
-        } else {
-            boolean bl2 = false;
+        }
 
-            for (PlayerEntity playerEntity : list) {
-                if (this.canTarget(playerEntity) && !this.isTeammate(playerEntity)) {
-                    bl2 = true;
-                    if ((bl || !NOT_WEARING_GAZE_DISGUISE_PREDICATE.test(playerEntity))
-                            && this.isEntityLookingAtMe(
-                            playerEntity, 0.5, false,
-                            this.getEyeY(), this.getY() + 0.5 * this.getScaleFactor(), (this.getEyeY() + this.getY()) / 2.0)) {
-                        if (bl) {
-                            return false;
-                        }
+        for (WeepingAngelEntity angel : angels) {
+            if (this.canTarget(angel) && !this.isTeammate(angel) &&
+                    angel.isEntityLookingAtMe(this, 0.5, false, this.getEyeY(), this.getY() + 0.5 * this.getScaleFactor(), (this.getEyeY() + this.getY()) / 2.0) &&
+                    this.isEntityLookingAtMe(angel, 0.5, false, angel.getEyeY(), angel.getY() + 0.5 * angel.getScaleFactor(), (angel.getEyeY() + angel.getY()) / 2.0)) {
+                this.deactivate();
+                angel.deactivate();
+                return false;
+            }
+        }
 
-                        if (playerEntity.squaredDistanceTo(this) < 144.0) {
-                            this.activate(playerEntity);
-                            return false;
-                        } else {
-                            this.deactivate();
+        for (LivingEntity entity : players) {
+            if (this.canTarget(entity) && !this.isTeammate(entity)) {
+                if ((isActive || !NOT_WEARING_GAZE_DISGUISE_PREDICATE.test(entity)) &&
+                        this.isEntityLookingAtMe(entity, 0.5, false, this.getEyeY(), this.getY() + 0.5 * this.getScaleFactor(), (this.getEyeY() + this.getY()) / 2.0)) {
+                    if (isActive) {
+                        return false;
+                    }
+
+                    if (entity.squaredDistanceTo(this) < 500.0) {
+                        if (entity instanceof PlayerEntity player) {
+                            this.activate(player);
                         }
+                        return false;
+                    } else {
+                        this.brain.remember(MemoryModuleType.ATTACK_TARGET, entity);
+                        this.deactivate();
                     }
                 }
             }
-
-            if (!bl2 && bl) {
-                this.deactivate();
-            }
-
-            return true;
         }
+
+        if (isActive) {
+            this.deactivate();
+        }
+        return true;
     }
 
     public boolean isEntityLookingAtMe(LivingEntity entity, double d, boolean bl, double... checkedYs) {
@@ -390,9 +414,14 @@ public class WeepingAngelEntity extends HostileEntity {
         }
     }
 
+    @Override
+    public double squaredAttackRange(LivingEntity target) {
+        return this.getWidth() * 2.0F * this.getWidth() * 2.0F + target.getWidth();
+    }
+
     public void deactivate() {
         if (this.isActive()) {
-            this.getBrain().forget(MemoryModuleType.ATTACK_TARGET);
+            //this.getBrain().forget(MemoryModuleType.ATTACK_TARGET);
             this.setActive(false);
         }
     }
@@ -513,6 +542,42 @@ public class WeepingAngelEntity extends HostileEntity {
             } else {
                 WeepingAngelEntity.this.setJumping(false);
             }
+        }
+    }
+
+    @Override
+    protected void initGoals() {
+        super.initGoals();
+        this.goalSelector.add(1, new WeepingAngelEntity.BreakDoorGoal(this));
+    }
+
+    class BreakDoorGoal extends net.minecraft.entity.ai.goal.BreakDoorGoal {
+        public BreakDoorGoal(MobEntity mobEntity) {
+            super(mobEntity, 6, WeepingAngelEntity.DOOR_BREAK_DIFFICULTY_CHECKER);
+            this.setControls(EnumSet.of(Goal.Control.MOVE));
+        }
+
+        @Override
+        public boolean shouldContinue() {
+            return WeepingAngelEntity.this.isNotStone() && super.shouldContinue();
+        }
+
+        @Override
+        public void tick() {
+            if (WeepingAngelEntity.this.isNotStone()) super.tick();
+
+        }
+
+        @Override
+        public boolean canStart() {
+            return WeepingAngelEntity.this.isNotStone() &&
+                    WeepingAngelEntity.this.random.nextInt(toGoalTicks(10)) == 0 && super.canStart();
+        }
+
+        @Override
+        public void start() {
+            super.start();
+            this.mob.setDespawnCounter(0);
         }
     }
 
