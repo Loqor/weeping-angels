@@ -324,6 +324,11 @@ public class WeepingAngelEntity extends HostileEntity {
         StackUtil.spawn(this.getWorld(), this.getBlockPos(), stack);
     }
 
+    @Override
+    public boolean isCollidable() {
+        return !this.isNotStone();
+    }
+
     public boolean shouldBeNotStone() {
         TargetPredicate targetPredicate = TargetPredicate.createAttackable().setBaseMaxDistance(500.0);
         List<PlayerEntity> players = this.getWorld().getTargets(PlayerEntity.class,
@@ -340,7 +345,8 @@ public class WeepingAngelEntity extends HostileEntity {
         }
 
         for (WeepingAngelEntity angel : angels) {
-            if (this.canTarget(angel) && !this.isTeammate(angel) &&
+            if (this.canTarget(angel) && (!this.getAngelPose().equals(AngelPose.HIDING) ||
+                    !angel.getAngelPose().equals(AngelPose.HIDING)) && !this.isTeammate(angel) &&
                     angel.isEntityLookingAtMe(this, 0.25, false, this.getEyeY(), this.getY() + 0.5 * this.getScaleFactor(), (this.getEyeY() + this.getY()) / 2.0) &&
                     this.isEntityLookingAtMe(angel, 0.25, false, angel.getEyeY(), angel.getY() + 0.5 * angel.getScaleFactor(), (angel.getEyeY() + angel.getY()) / 2.0)) {
                 this.deactivate();
