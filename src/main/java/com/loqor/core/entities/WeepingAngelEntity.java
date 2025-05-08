@@ -297,11 +297,6 @@ public class WeepingAngelEntity extends HostileEntity {
     }
 
     @Override
-    public boolean isFireImmune() {
-        return true;
-    }
-
-    @Override
     public boolean canUsePortals() {
         return this.isNotStone();
     }
