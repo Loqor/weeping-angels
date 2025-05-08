@@ -341,8 +341,8 @@ public class WeepingAngelEntity extends HostileEntity {
 
         for (WeepingAngelEntity angel : angels) {
             if (this.canTarget(angel) && !this.isTeammate(angel) &&
-                    angel.isEntityLookingAtMe(this, 0.5, false, this.getEyeY(), this.getY() + 0.5 * this.getScaleFactor(), (this.getEyeY() + this.getY()) / 2.0) &&
-                    this.isEntityLookingAtMe(angel, 0.5, false, angel.getEyeY(), angel.getY() + 0.5 * angel.getScaleFactor(), (angel.getEyeY() + angel.getY()) / 2.0)) {
+                    angel.isEntityLookingAtMe(this, 0.25, false, this.getEyeY(), this.getY() + 0.5 * this.getScaleFactor(), (this.getEyeY() + this.getY()) / 2.0) &&
+                    this.isEntityLookingAtMe(angel, 0.25, false, angel.getEyeY(), angel.getY() + 0.5 * angel.getScaleFactor(), (angel.getEyeY() + angel.getY()) / 2.0)) {
                 this.deactivate();
                 angel.deactivate();
                 return false;
