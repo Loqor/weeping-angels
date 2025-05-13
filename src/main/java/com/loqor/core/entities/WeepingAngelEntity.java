@@ -18,7 +18,7 @@ import net.minecraft.entity.ai.control.BodyControl;
 import net.minecraft.entity.ai.control.JumpControl;
 import net.minecraft.entity.ai.control.LookControl;
 import net.minecraft.entity.ai.control.MoveControl;
-import net.minecraft.entity.ai.goal.*;
+import net.minecraft.entity.ai.goal.Goal;
 import net.minecraft.entity.ai.pathing.*;
 import net.minecraft.entity.attribute.DefaultAttributeContainer;
 import net.minecraft.entity.attribute.EntityAttributes;
@@ -28,20 +28,14 @@ import net.minecraft.entity.data.TrackedData;
 import net.minecraft.entity.data.TrackedDataHandler;
 import net.minecraft.entity.data.TrackedDataHandlerRegistry;
 import net.minecraft.entity.mob.HostileEntity;
-import net.minecraft.entity.mob.IllagerEntity;
 import net.minecraft.entity.mob.MobEntity;
-import net.minecraft.entity.mob.VindicatorEntity;
-import net.minecraft.entity.passive.IronGolemEntity;
-import net.minecraft.entity.passive.MerchantEntity;
 import net.minecraft.entity.player.PlayerEntity;
-import net.minecraft.entity.raid.RaiderEntity;
 import net.minecraft.item.Item;
 import net.minecraft.item.ItemStack;
 import net.minecraft.item.Items;
 import net.minecraft.item.PickaxeItem;
 import net.minecraft.nbt.NbtCompound;
 import net.minecraft.particle.ParticleTypes;
-import net.minecraft.predicate.entity.EntityPredicates;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.world.ServerWorld;
 import net.minecraft.sound.SoundCategory;
@@ -417,7 +411,7 @@ public class WeepingAngelEntity extends HostileEntity {
 
         for (WeepingAngelEntity angel : angels) {
             if (this.canTarget(angel) && (!this.getAngelPose().equals(AngelPose.HIDING) ||
-                    !angel.getAngelPose().equals(AngelPose.HIDING)) && !this.isTeammate(angel) &&
+                    !angel.getAngelPose().equals(AngelPose.HIDING)) && (!this.getAngelPose().equals(AngelPose.RETREATING) || !angel.getAngelPose().equals(AngelPose.RETREATING)) && !this.isTeammate(angel) &&
                     angel.isEntityLookingAtMe(this, 0.25, false, this.getEyeY(), this.getY() + 0.5 * this.getScaleFactor(), (this.getEyeY() + this.getY()) / 2.0) &&
                     this.isEntityLookingAtMe(angel, 0.25, false, angel.getEyeY(), angel.getY() + 0.5 * angel.getScaleFactor(), (angel.getEyeY() + angel.getY()) / 2.0)) {
                 this.deactivate();
