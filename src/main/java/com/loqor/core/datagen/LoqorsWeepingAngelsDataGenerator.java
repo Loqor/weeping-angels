@@ -5,6 +5,7 @@ import com.loqor.core.LWAEntities;
 import com.loqor.core.LWAItems;
 import dev.amble.lib.datagen.lang.AmbleLanguageProvider;
 import dev.amble.lib.datagen.lang.LanguageType;
+import dev.amble.lib.datagen.sound.AmbleSoundProvider;
 import net.fabricmc.fabric.api.datagen.v1.DataGeneratorEntrypoint;
 import net.fabricmc.fabric.api.datagen.v1.FabricDataGenerator;
 import net.fabricmc.fabric.api.datagen.v1.FabricDataOutput;
@@ -14,11 +15,16 @@ public class LoqorsWeepingAngelsDataGenerator implements DataGeneratorEntrypoint
 	public void onInitializeDataGenerator(FabricDataGenerator fabricDataGenerator) {
 		FabricDataGenerator.Pack pack = fabricDataGenerator.createPack();
 		generateENUSLanguage(pack);
+		generateSoundData(pack);
 	}
 
 	public void generateENUSLanguage(FabricDataGenerator.Pack pack) {
 		pack.addProvider(
 				((output, registriesFuture) -> addEnglishTranslations(output, LanguageType.EN_US)));
+	}
+
+	public void generateSoundData(FabricDataGenerator.Pack pack) {
+		pack.addProvider((((output, registriesFuture) -> new AmbleSoundProvider(output))));
 	}
 
 	public AmbleLanguageProvider addEnglishTranslations(FabricDataOutput output,
