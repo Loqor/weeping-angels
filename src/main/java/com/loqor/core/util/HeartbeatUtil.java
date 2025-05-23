@@ -21,7 +21,7 @@ public class HeartbeatUtil {
     private static final Map<UUID, Long> lastHeartbeat = new HashMap<>();
 
     public static void checkHeartRate(ServerPlayerEntity player) {
-        if (player.getHealth() >= 10) return;
+        //if (player.getHealth() >= 10) return;
 
         List<WeepingAngelEntity> angels = getNearbyWeepingAngels(player);
         if (angels.isEmpty()) return;
@@ -43,10 +43,10 @@ public class HeartbeatUtil {
     private static void playDoubleHeartbeat(ServerPlayerEntity player) {
         World world = player.getWorld();
 
-        world.playSound(null, player.getBlockPos(), LWASounds.HEART_BEAT, SoundCategory.PLAYERS, 0.1f, 1.0f);
+        world.playSound(null, player.getBlockPos(), LWASounds.HEART_BEAT, SoundCategory.PLAYERS, 0.25f, 1.0f);
 
         Scheduler.get().runTaskLater(() -> {
-            world.playSound(null, player.getBlockPos(), LWASounds.HEART_BEAT, SoundCategory.PLAYERS, 0.1f, 0.95f);
+            world.playSound(null, player.getBlockPos(), LWASounds.HEART_BEAT, SoundCategory.PLAYERS, 0.25f, 0.95f);
         }, TimeUnit.TICKS, 6);
     }
 

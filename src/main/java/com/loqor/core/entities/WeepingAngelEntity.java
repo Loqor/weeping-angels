@@ -4,6 +4,7 @@ import com.loqor.core.LWADamageTypes;
 import com.loqor.core.angels.Angel;
 import com.loqor.core.angels.AngelRegistry;
 import com.loqor.core.util.StackUtil;
+import com.loqor.core.world.LWASounds;
 import com.mojang.serialization.Dynamic;
 import dev.drtheo.scheduler.api.Scheduler;
 import dev.drtheo.scheduler.api.TimeUnit;
@@ -221,7 +222,7 @@ public class WeepingAngelEntity extends HostileEntity {
             } else {
                 player.damage(LWADamageTypes.of(target.getWorld(),
                         LWADamageTypes.ANGEL_NECK_SNAP), Float.MAX_VALUE);
-                player.playSound(SoundEvents.ENTITY_PLAYER_BIG_FALL, 1.0F, 1.5F);
+                this.playSound(LWASounds.NECK_SNAP, 1.0F, 1F);
             }
         }
         super.onAttacking(target);
@@ -310,9 +311,10 @@ public class WeepingAngelEntity extends HostileEntity {
                     this.setAngelPose(AngelPose.MOVING);
                     this.playSound(SoundEvents.BLOCK_STONE_BREAK, 0.5f, 1.0F);
                 } else {
-                    this.setAngelPose(this.getRandomAngelPose());
                     this.stopMovement();
                     this.playSound(SoundEvents.BLOCK_STONE_PLACE, 0.5f, 0.1F);
+                    this.setVelocity(0, 0, 0);
+                    this.setAngelPose(this.getRandomAngelPose());
                 }
             }
 
@@ -412,10 +414,17 @@ public class WeepingAngelEntity extends HostileEntity {
         for (WeepingAngelEntity angel : angels) {
             if (this.canTarget(angel) && (!this.getAngelPose().equals(AngelPose.HIDING) ||
                     !angel.getAngelPose().equals(AngelPose.HIDING)) && (!this.getAngelPose().equals(AngelPose.RETREATING) || !angel.getAngelPose().equals(AngelPose.RETREATING)) && !this.isTeammate(angel) &&
-                    angel.isEntityLookingAtMe(this, 0.25, false, this.getEyeY(), this.getY() + 0.5 * this.getScaleFactor(), (this.getEyeY() + this.getY()) / 2.0) &&
-                    this.isEntityLookingAtMe(angel, 0.25, false, angel.getEyeY(), angel.getY() + 0.5 * angel.getScaleFactor(), (angel.getEyeY() + angel.getY()) / 2.0)) {
+                    angel.isEntityLookingAtMe(this, 1, false, this.getEyeY(), this.getY() + 0.5 * this.getScaleFactor(), (this.getEyeY() + this.getY()) / 2.0) &&
+                    this.isEntityLookingAtMe(angel, 1, false, angel.getEyeY(), angel.getY() + 0.5 * angel.getScaleFactor(), (angel.getEyeY() + angel.getY()) / 2.0)) {
+                if (this.isActive()) {
+                    if (this.getRandom().nextBoolean())
+                        this.playSound(SoundEvents.ENTITY_GHAST_SCREAM, 1, 2.0f);
+                    else
+                        angel.playSound(SoundEvents.ENTITY_GHAST_SCREAM, 1, 2.0f);
+                }
                 this.deactivate();
                 angel.deactivate();
+
                 return false;
             }
         }
@@ -435,7 +444,7 @@ public class WeepingAngelEntity extends HostileEntity {
                 }
 
                 if ((isActive || !NOT_WEARING_GAZE_DISGUISE_PREDICATE.test(entity)) &&
-                        this.isEntityLookingAtMe(entity, 0.5, false, this.getEyeY(), this.getY() + 0.5 * this.getScaleFactor(), (this.getEyeY() + this.getY()) / 2.0)) {
+                        this.isEntityLookingAtMe(entity, 1, false, this.getEyeY(), this.getY() + 0.5 * this.getScaleFactor(), (this.getEyeY() + this.getY()) / 2.0)) {
 
                     if (isActive) {
                         return false;
@@ -464,16 +473,17 @@ public class WeepingAngelEntity extends HostileEntity {
 
 
     public boolean isEntityLookingAtMe(LivingEntity entity, double d, boolean bl, double... checkedYs) {
-
-        Vec3d vec3d = entity.getRotationVec(1.0F).normalize();
+        Vec3d lookVec = entity.getRotationVec(1.0F).normalize();
 
         for (double e : checkedYs) {
-            Vec3d vec3d2 = new Vec3d(this.getX() - entity.getX(), e - entity.getEyeY(), this.getZ() - entity.getZ());
-            double f = vec3d2.length();
-            vec3d2 = vec3d2.normalize();
-            double g = vec3d.dotProduct(vec3d2);
-            if (g > 1.0 - d / (bl ? f : 1.0)
-                    && this.canSee(this)) {
+            Vec3d toAngel = new Vec3d(this.getX() - entity.getX(), e - entity.getEyeY(), this.getZ() - entity.getZ());
+            double distance = toAngel.length();
+            toAngel = toAngel.normalize();
+            double dot = lookVec.dotProduct(toAngel);
+
+            // Use a very tight threshold, making it nearly impossible to "not look" at the angel
+            // (e.g., require the player to look away by more than 179.9 degrees)
+            if (dot > Math.cos(Math.toRadians(90f)) && this.canSee(this)) {
                 return true;
             }
         }
@@ -508,13 +518,21 @@ public class WeepingAngelEntity extends HostileEntity {
 
     public void deactivate() {
         if (this.isActive()) {
-            //this.getBrain().forget(MemoryModuleType.ATTACK_TARGET);
             this.setActive(false);
         }
     }
 
     public AngelPose getRandomAngelPose() {
-        return AngelPose.values()[this.getRandom().nextInt(AngelPose.values().length)];
+        // 70% chance to return HIDING, 30% to return a random other pose - Loqor
+        if (this.getRandom().nextFloat() < 0.7f) {
+            return AngelPose.HIDING;
+        }
+        AngelPose[] poses = AngelPose.values();
+        AngelPose pose;
+        do {
+            pose = poses[this.getRandom().nextInt(poses.length)];
+        } while (pose == AngelPose.HIDING && poses.length > 1);
+        return pose;
     }
 
     public void setActive(boolean active) {
