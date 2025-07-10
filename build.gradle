@@ -22,13 +22,23 @@ repositories {
 	// Scheduler, Queue, MultiDim, AutoJSON
 	maven { url "https://theo.is-a.dev/maven-repo/" }
 
-	maven { url "https://maven.shedaniel.me/" }
-
 	// YACL
 	maven { url 'https://maven.isxander.dev/releases' }
 
 	// ModMenu
 	maven { url "https://maven.terraformersmc.com/releases/" }
+
+	exclusiveContent {
+		forRepository {
+			maven {
+				name = "Modrinth"
+				url = "https://api.modrinth.com/maven"
+			}
+		}
+		filter {
+			includeGroup "maven.modrinth"
+		}
+	}
 }
 
 loom {
