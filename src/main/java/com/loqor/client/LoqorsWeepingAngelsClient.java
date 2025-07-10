@@ -1,5 +1,6 @@
 package com.loqor.client;
 
+import com.loqor.client.config.LWAClientConfig;
 import com.loqor.client.renderers.WeepingAngelRenderer;
 import com.loqor.core.LWAEntities;
 import com.loqor.core.angels.AngelRegistry;
@@ -9,8 +10,14 @@ import net.fabricmc.fabric.api.client.rendering.v1.EntityRendererRegistry;
 import net.fabricmc.fabric.api.client.rendering.v1.HudRenderCallback;
 
 public class LoqorsWeepingAngelsClient implements ClientModInitializer {
+
+	public static LWAClientConfig CONFIG;
+
 	@Override
 	public void onInitializeClient() {
+		LWAClientConfig.INSTANCE.load();
+		CONFIG = LWAClientConfig.INSTANCE.instance();
+
 		AmbleRegistries.getInstance().registerAll(
 				AngelRegistry.getInstance()
 		);

@@ -35,6 +35,16 @@ public class LoqorsWeepingAngelsDataGenerator implements DataGeneratorEntrypoint
 		provider.addTranslation(LWAEntities.WEEPING_ANGEL.getTranslationKey(), "Weeping Angel");
 		provider.addTranslation("death.attack.angel_neck_snap_damage_type.player", "%1$s had their neck snapped by a Weeping Angel!");
 
+		// YACL Config Translations
+		provider.addTranslation("text.loqors-weeping-angels.config.title", "Loqor's Weeping Angels Options");
+		provider.addTranslation("text.loqors-weeping-angels.config.categories", "Categories");
+		provider.addTranslation("category.loqors-weeping-angels.config.client", "Client Options");
+		provider.addTranslation("category.loqors-weeping-angels.config.server", "Server Options");
+		provider.addTranslation("yacl3.config.loqors-weeping-angels:client.category.client", "Client Options");
+		provider.addTranslation("yacl3.config.loqors-weeping-angels:server.category.server", "Server Options");
+		provider.addTranslation("yacl3.config.loqors-weeping-angels:client.doScreenEffects", "Do Screen Effects");
+		provider.addTranslation("yacl3.config.loqors-weeping-angels:server.shouldDoHeartbeatTracking", "Do Heartbeat Tracking");
+		provider.addTranslation("yacl3.config.loqors-weeping-angels:server.angelSpawnRate", "Angel Spawn Rate");
 		return provider;
 	}
 

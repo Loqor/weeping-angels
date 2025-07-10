@@ -23,6 +23,12 @@ repositories {
 	maven { url "https://theo.is-a.dev/maven-repo/" }
 
 	maven { url "https://maven.shedaniel.me/" }
+
+	// YACL
+	maven { url 'https://maven.isxander.dev/releases' }
+
+	// ModMenu
+	maven { url "https://maven.terraformersmc.com/releases/" }
 }
 
 loom {
@@ -59,12 +65,11 @@ dependencies {
 	mappings "net.fabricmc:yarn:${project.yarn_mappings}:v2"
 	modImplementation "net.fabricmc:fabric-loader:${project.loader_version}"
 
-	modApi("me.shedaniel.cloth:cloth-config-fabric:${project.cloth_version}") {
-		exclude(group: "net.fabricmc.fabric-api")
-	}
+	modImplementation "dev.isxander:yet-another-config-lib:${project.yacl_version}"
+	modImplementation("com.terraformersmc:modmenu:${project.modmenu_version}")
 
-	// Fabric API. This is technically optional, but you probably want it anyway.
 	modImplementation "net.fabricmc.fabric-api:fabric-api:${project.fabric_version}"
+
 	modImplementation("com.github.amblelabs:modkit:${project.modkit_version}") {
 		exclude(group: "net.fabricmc.fabric-api")
 	}
@@ -79,12 +84,14 @@ processResources {
 	inputs.property "version", project.version
 	inputs.property "minecraft_version", project.minecraft_version
 	inputs.property "loader_version", project.loader_version
+	inputs.property "yacl_version", project.yacl_version
 	filteringCharset "UTF-8"
 
 	filesMatching("fabric.mod.json") {
 		expand "version": project.version,
 				"minecraft_version": project.minecraft_version,
-				"loader_version": project.loader_version
+				"loader_version": project.loader_version,
+				"yacl_version": project.yacl_version
 	}
 }
 

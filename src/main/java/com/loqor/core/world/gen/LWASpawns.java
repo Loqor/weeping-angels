@@ -1,5 +1,6 @@
 package com.loqor.core.world.gen;
 
+import com.loqor.LoqorsWeepingAngels;
 import com.loqor.core.LWAEntities;
 import com.loqor.core.entities.WeepingAngelEntity;
 import net.fabricmc.fabric.api.biome.v1.BiomeModifications;
@@ -17,7 +18,7 @@ public class LWASpawns {
                         BiomeKeys.SOUL_SAND_VALLEY),
                 SpawnGroup.MONSTER,
                 LWAEntities.WEEPING_ANGEL,
-                5,
+                LoqorsWeepingAngels.CONFIG.angelSpawnRate,
                 1,
                 1);
         BiomeModifications.addSpawn(BiomeSelectors.includeByKey(
@@ -45,7 +46,7 @@ public class LWASpawns {
                         BiomeKeys.DEEP_DARK),
                 SpawnGroup.MONSTER,
                 LWAEntities.WEEPING_ANGEL,
-                10,
+                LoqorsWeepingAngels.CONFIG.angelSpawnRate,
                 1,
                 1);
         BiomeModifications.addSpawn(BiomeSelectors.includeByKey(
@@ -54,7 +55,7 @@ public class LWASpawns {
                         BiomeKeys.END_MIDLANDS),
                 SpawnGroup.MONSTER,
                 LWAEntities.WEEPING_ANGEL,
-                1,
+                LoqorsWeepingAngels.CONFIG.angelSpawnRate,
                 1,
                 1);
     }

@@ -1,5 +1,6 @@
 package com.loqor;
 
+import com.loqor.config.LWAServerConfig;
 import com.loqor.core.LWAEntities;
 import com.loqor.core.LWAItems;
 import com.loqor.core.angels.AngelRegistry;
@@ -30,9 +31,14 @@ public class LoqorsWeepingAngels implements ModInitializer {
 	}
 	public static final HeartbeatUtil INSTANCE = new HeartbeatUtil();
 
+	public static LWAServerConfig CONFIG;
 
 	@Override
 	public void onInitialize() {
+		LWAServerConfig.INSTANCE.load();
+		CONFIG = LWAServerConfig.INSTANCE.instance();
+
+
 		LOGGER.info("Loqor's Weeping Angels mod is initializing...");
 
 		// This registers the entity types and item classes
@@ -48,7 +54,8 @@ public class LoqorsWeepingAngels implements ModInitializer {
 		// This is for the player heartbeat buildup
 		ServerTickEvents.END_SERVER_TICK.register(server -> {
 			for (ServerPlayerEntity player : server.getPlayerManager().getPlayerList()) {
-				HeartbeatUtil.checkHeartRate(player);
+				if (CONFIG.shouldDoHeartbeatTracking)
+					HeartbeatUtil.checkHeartRate(player);
 			}
 		});
 	}

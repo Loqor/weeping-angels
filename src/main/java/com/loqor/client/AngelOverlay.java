@@ -1,6 +1,7 @@
 package com.loqor.client;
 
 import com.loqor.LoqorsWeepingAngels;
+import com.loqor.client.config.LWAClientConfig;
 import com.loqor.core.entities.WeepingAngelEntity;
 import com.loqor.core.util.HeartbeatUtil;
 import com.mojang.blaze3d.systems.RenderSystem;
@@ -23,6 +24,7 @@ public class AngelOverlay implements HudRenderCallback {
     public static final Identifier DANGER = LoqorsWeepingAngels.id("textures/overlay/danger.png");
     @Override
     public void onHudRender(DrawContext drawContext, float v) {
+        if (!LWAClientConfig.INSTANCE.instance().doScreenEffects) return;
         PlayerEntity player = MinecraftClient.getInstance().player;
         if (player == null) return;
 
