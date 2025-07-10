@@ -45,9 +45,12 @@ public class HeartbeatUtil {
 
         world.playSound(null, player.getBlockPos(), LWASounds.HEART_BEAT, SoundCategory.PLAYERS, 0.25f, 1.0f);
 
-        Scheduler.get().runTaskLater(() -> {
-            world.playSound(null, player.getBlockPos(), LWASounds.HEART_BEAT, SoundCategory.PLAYERS, 0.25f, 0.95f);
-        }, TimeUnit.TICKS, 6);
+        Scheduler scheduler = Scheduler.get();
+        if (scheduler != null) {
+            scheduler.runTaskLater(() -> {
+                world.playSound(null, player.getBlockPos(), LWASounds.HEART_BEAT, SoundCategory.PLAYERS, 0.25f, 0.95f);
+            }, TimeUnit.TICKS, 6);
+        }
     }
 
     private static List<WeepingAngelEntity> getNearbyWeepingAngels(ServerPlayerEntity player) {
