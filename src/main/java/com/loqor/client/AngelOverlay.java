@@ -32,7 +32,7 @@ public class AngelOverlay implements HudRenderCallback {
                 pos.add(10, 10, 10)
         );
 
-        List<WeepingAngelEntity> angels = player.getWorld().getEntitiesByClass(WeepingAngelEntity.class, range, angel -> true);
+        List<WeepingAngelEntity> angels = player.getWorld().getEntitiesByClass(WeepingAngelEntity.class, range, WeepingAngelEntity::isAngryEnough);
 
         if (angels.isEmpty()) return;
 
