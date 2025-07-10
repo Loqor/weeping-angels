@@ -9,15 +9,15 @@ import net.minecraft.client.util.math.MatrixStack;
 
 public class AngelModel<T extends WeepingAngelEntity> extends SinglePartEntityModel<T> {
 
-	private final ModelPart Angel;
-	private final ModelPart Head;
-	private final ModelPart Body;
-	private final ModelPart Wings;
-	private final ModelPart Wing1;
-	private final ModelPart Wing2;
-	private final ModelPart RightArm;
-	private final ModelPart LeftArm;
-	private final ModelPart dress;
+	public final ModelPart Angel;
+	public final ModelPart Head;
+	public final ModelPart Body;
+	public final ModelPart Wings;
+	public final ModelPart Wing1;
+	public final ModelPart Wing2;
+	public final ModelPart RightArm;
+	public final ModelPart LeftArm;
+	public final ModelPart dress;
 
 	public AngelModel(ModelPart root) {
 		this.Angel = root.getChild("Angel");
@@ -61,7 +61,7 @@ public class AngelModel<T extends WeepingAngelEntity> extends SinglePartEntityMo
 
 	@Override
 	public void render(MatrixStack matrices, VertexConsumer vertexConsumer, int light, int overlay, float red, float green, float blue, float alpha) {
-		Angel.render(matrices, vertexConsumer, light, OverlayTexture.DEFAULT_UV, red, green, blue, alpha);
+		this.getPart().render(matrices, vertexConsumer, light, OverlayTexture.DEFAULT_UV, red, green, blue, alpha);
 	}
 
 	@Override

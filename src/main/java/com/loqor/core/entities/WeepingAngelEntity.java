@@ -6,6 +6,7 @@ import com.loqor.core.angels.AngelRegistry;
 import com.loqor.core.util.StackUtil;
 import com.loqor.core.world.LWASounds;
 import com.mojang.serialization.Dynamic;
+import dev.amble.lib.util.ServerLifecycleHooks;
 import dev.drtheo.scheduler.api.Scheduler;
 import dev.drtheo.scheduler.api.TimeUnit;
 import net.minecraft.block.Block;
@@ -65,6 +66,7 @@ public class WeepingAngelEntity extends HostileEntity {
     private static final TrackedData<String> ANGEL = DataTracker.registerData(WeepingAngelEntity.class, TrackedDataHandlerRegistry.STRING);
     private static final TrackedDataHandler<WeepingAngelEntity.AngelPose> ANGEL_POSES = TrackedDataHandler.ofEnum(WeepingAngelEntity.AngelPose.class);
     private static final TrackedData<AngelPose> ANGEL_POSE = DataTracker.registerData(WeepingAngelEntity.class, ANGEL_POSES);
+    private static final TrackedData<Integer> BLOODLUST = DataTracker.registerData(WeepingAngelEntity.class, TrackedDataHandlerRegistry.INTEGER);
     private static final String ANGEL_KEY = "Angel";
     public static final Predicate<LivingEntity> NOT_WEARING_GAZE_DISGUISE_PREDICATE = entity -> {
         if (entity instanceof PlayerEntity playerEntity) {
@@ -127,11 +129,15 @@ public class WeepingAngelEntity extends HostileEntity {
 
     @Override
     public float getMovementSpeed() {
-        // Make the angels faster if the moon is BIG - Loqor
-        if (this.getWorld().getMoonSize() > 0.9F) {
-            return super.getMovementSpeed() * 1.25F;
+        float base = super.getMovementSpeed();
+        int bloodlust = getBloodlust();
+        if (bloodlust > 0) {
+            base *= 1.0F + (bloodlust / 100.0F) * 0.5F; // up to 50% speed boost
         }
-        return super.getMovementSpeed();
+        if (this.getWorld().getMoonSize() > 0.9F) {
+            base *= 1.25F;
+        }
+        return base;
     }
 
     @Nullable
@@ -177,6 +183,7 @@ public class WeepingAngelEntity extends HostileEntity {
         if (!this.getWorld().isClient) {
             extinguishNearbyLights();
             processFlickeringLights();
+            decayBloodlust();
         }
     }
 
@@ -187,6 +194,7 @@ public class WeepingAngelEntity extends HostileEntity {
         this.dataTracker.startTracking(ACTIVE, false);
         this.dataTracker.startTracking(ANGEL, AngelRegistry.STONE.id().toString());
         this.dataTracker.startTracking(ANGEL_POSE, AngelPose.HIDING);
+        this.dataTracker.startTracking(BLOODLUST, 0);
     }
 
     @Override
@@ -221,7 +229,7 @@ public class WeepingAngelEntity extends HostileEntity {
                 });
             } else {
                 player.damage(LWADamageTypes.of(target.getWorld(),
-                        LWADamageTypes.ANGEL_NECK_SNAP), Float.MAX_VALUE);
+                        LWADamageTypes.ANGEL_NECK_SNAP), Math.max(20.0F, Float.MAX_VALUE * (getBloodlust() / 100.0F)));
                 this.playSound(LWASounds.NECK_SNAP, 1.0F, 1F);
             }
         }
@@ -246,6 +254,23 @@ public class WeepingAngelEntity extends HostileEntity {
 
     public Angel getAngel() {
         return AngelRegistry.getInstance().get(Identifier.tryParse(this.getAngelData()));
+    }
+
+    public int getBloodlust() {
+        return this.dataTracker.get(BLOODLUST);
+    }
+
+    public void addBloodlust(int amount) {
+        int current = getBloodlust();
+        int newValue = Math.min(100, Math.max(0, current + amount));
+        this.dataTracker.set(BLOODLUST, newValue);
+    }
+
+    public void decayBloodlust() {
+        int current = getBloodlust();
+        if (current > 0) {
+            this.dataTracker.set(BLOODLUST, current - 1);
+        }
     }
 
     @Override
@@ -315,6 +340,16 @@ public class WeepingAngelEntity extends HostileEntity {
                     this.playSound(SoundEvents.BLOCK_STONE_PLACE, 0.5f, 0.1F);
                     this.setVelocity(0, 0, 0);
                     this.setAngelPose(this.getRandomAngelPose());
+
+                    // Play angry sound if angry enough and just became stone (player stopped looking)
+                    if (this.isAngryEnough()) {
+                        this.playSound(SoundEvents.ENTITY_WITHER_SPAWN, 1.0F, 0.1F);
+                    }
+
+                    // Add 1 point to bloodlust every 20 ticks if the entity is stoned (lol) - Loqor
+                    if (ServerLifecycleHooks.get().getTicks() % 20 == 0) {
+                        this.addBloodlust(1);
+                    }
                 }
             }
 
@@ -565,6 +600,10 @@ public class WeepingAngelEntity extends HostileEntity {
 
     public void setAngelPose(AngelPose pose) {
         this.dataTracker.set(ANGEL_POSE, pose);
+    }
+
+    public boolean isAngryEnough() {
+        return getBloodlust() >= 70;
     }
 
     class AngelLandPathNodeMaker extends LandPathNodeMaker {
