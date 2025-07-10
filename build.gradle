@@ -70,7 +70,7 @@ dependencies {
 
 	modImplementation "net.fabricmc.fabric-api:fabric-api:${project.fabric_version}"
 
-	modImplementation("com.github.amblelabs:modkit:${project.modkit_version}") {
+	modImplementation("maven.modrinth:amblekit:${project.modkit_version}") {
 		exclude(group: "net.fabricmc.fabric-api")
 	}
 	include(modImplementation("dev.drtheo:scheduler:${project.scheduler_version}")) {
