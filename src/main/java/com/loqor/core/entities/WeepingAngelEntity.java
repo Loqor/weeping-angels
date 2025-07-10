@@ -4,7 +4,9 @@ import com.loqor.core.LWADamageTypes;
 import com.loqor.core.angels.Angel;
 import com.loqor.core.angels.AngelRegistry;
 import com.loqor.core.util.StackUtil;
+import com.loqor.core.world.LWASounds;
 import com.mojang.serialization.Dynamic;
+import dev.amble.lib.util.ServerLifecycleHooks;
 import dev.drtheo.scheduler.api.Scheduler;
 import dev.drtheo.scheduler.api.TimeUnit;
 import net.minecraft.block.Block;
@@ -64,6 +66,7 @@ public class WeepingAngelEntity extends HostileEntity {
     private static final TrackedData<String> ANGEL = DataTracker.registerData(WeepingAngelEntity.class, TrackedDataHandlerRegistry.STRING);
     private static final TrackedDataHandler<WeepingAngelEntity.AngelPose> ANGEL_POSES = TrackedDataHandler.ofEnum(WeepingAngelEntity.AngelPose.class);
     private static final TrackedData<AngelPose> ANGEL_POSE = DataTracker.registerData(WeepingAngelEntity.class, ANGEL_POSES);
+    private static final TrackedData<Integer> BLOODLUST = DataTracker.registerData(WeepingAngelEntity.class, TrackedDataHandlerRegistry.INTEGER);
     private static final String ANGEL_KEY = "Angel";
     public static final Predicate<LivingEntity> NOT_WEARING_GAZE_DISGUISE_PREDICATE = entity -> {
         if (entity instanceof PlayerEntity playerEntity) {
@@ -126,11 +129,15 @@ public class WeepingAngelEntity extends HostileEntity {
 
     @Override
     public float getMovementSpeed() {
-        // Make the angels faster if the moon is BIG - Loqor
-        if (this.getWorld().getMoonSize() > 0.9F) {
-            return super.getMovementSpeed() * 1.25F;
+        float base = super.getMovementSpeed();
+        int bloodlust = getBloodlust();
+        if (bloodlust > 0) {
+            base *= 1.0F + (bloodlust / 100.0F) * 0.5F; // up to 50% speed boost
         }
-        return super.getMovementSpeed();
+        if (this.getWorld().getMoonSize() > 0.9F) {
+            base *= 1.25F;
+        }
+        return base;
     }
 
     @Nullable
@@ -176,6 +183,7 @@ public class WeepingAngelEntity extends HostileEntity {
         if (!this.getWorld().isClient) {
             extinguishNearbyLights();
             processFlickeringLights();
+            decayBloodlust();
         }
     }
 
@@ -186,6 +194,7 @@ public class WeepingAngelEntity extends HostileEntity {
         this.dataTracker.startTracking(ACTIVE, false);
         this.dataTracker.startTracking(ANGEL, AngelRegistry.STONE.id().toString());
         this.dataTracker.startTracking(ANGEL_POSE, AngelPose.HIDING);
+        this.dataTracker.startTracking(BLOODLUST, 0);
     }
 
     @Override
@@ -220,8 +229,8 @@ public class WeepingAngelEntity extends HostileEntity {
                 });
             } else {
                 player.damage(LWADamageTypes.of(target.getWorld(),
-                        LWADamageTypes.ANGEL_NECK_SNAP), Float.MAX_VALUE);
-                player.playSound(SoundEvents.ENTITY_PLAYER_BIG_FALL, 1.0F, 1.5F);
+                        LWADamageTypes.ANGEL_NECK_SNAP), Math.max(20.0F, Float.MAX_VALUE * (getBloodlust() / 100.0F)));
+                this.playSound(LWASounds.NECK_SNAP, 1.0F, 1F);
             }
         }
         super.onAttacking(target);
@@ -245,6 +254,23 @@ public class WeepingAngelEntity extends HostileEntity {
 
     public Angel getAngel() {
         return AngelRegistry.getInstance().get(Identifier.tryParse(this.getAngelData()));
+    }
+
+    public int getBloodlust() {
+        return this.dataTracker.get(BLOODLUST);
+    }
+
+    public void addBloodlust(int amount) {
+        int current = getBloodlust();
+        int newValue = Math.min(100, Math.max(0, current + amount));
+        this.dataTracker.set(BLOODLUST, newValue);
+    }
+
+    public void decayBloodlust() {
+        int current = getBloodlust();
+        if (current > 0) {
+            this.dataTracker.set(BLOODLUST, current - 1);
+        }
     }
 
     @Override
@@ -310,9 +336,20 @@ public class WeepingAngelEntity extends HostileEntity {
                     this.setAngelPose(AngelPose.MOVING);
                     this.playSound(SoundEvents.BLOCK_STONE_BREAK, 0.5f, 1.0F);
                 } else {
-                    this.setAngelPose(this.getRandomAngelPose());
                     this.stopMovement();
                     this.playSound(SoundEvents.BLOCK_STONE_PLACE, 0.5f, 0.1F);
+                    this.setVelocity(0, 0, 0);
+                    this.setAngelPose(this.getRandomAngelPose());
+
+                    // Play angry sound if angry enough and just became stone (player stopped looking)
+                    if (this.isAngryEnough()) {
+                        this.playSound(SoundEvents.ENTITY_WITHER_SPAWN, 1.0F, 0.1F);
+                    }
+
+                    // Add 1 point to bloodlust every 20 ticks if the entity is stoned (lol) - Loqor
+                    if (ServerLifecycleHooks.get().getTicks() % 20 == 0) {
+                        this.addBloodlust(1);
+                    }
                 }
             }
 
@@ -412,10 +449,17 @@ public class WeepingAngelEntity extends HostileEntity {
         for (WeepingAngelEntity angel : angels) {
             if (this.canTarget(angel) && (!this.getAngelPose().equals(AngelPose.HIDING) ||
                     !angel.getAngelPose().equals(AngelPose.HIDING)) && (!this.getAngelPose().equals(AngelPose.RETREATING) || !angel.getAngelPose().equals(AngelPose.RETREATING)) && !this.isTeammate(angel) &&
-                    angel.isEntityLookingAtMe(this, 0.25, false, this.getEyeY(), this.getY() + 0.5 * this.getScaleFactor(), (this.getEyeY() + this.getY()) / 2.0) &&
-                    this.isEntityLookingAtMe(angel, 0.25, false, angel.getEyeY(), angel.getY() + 0.5 * angel.getScaleFactor(), (angel.getEyeY() + angel.getY()) / 2.0)) {
+                    angel.isEntityLookingAtMe(this, 1, false, this.getEyeY(), this.getY() + 0.5 * this.getScaleFactor(), (this.getEyeY() + this.getY()) / 2.0) &&
+                    this.isEntityLookingAtMe(angel, 1, false, angel.getEyeY(), angel.getY() + 0.5 * angel.getScaleFactor(), (angel.getEyeY() + angel.getY()) / 2.0)) {
+                if (this.isActive()) {
+                    if (this.getRandom().nextBoolean())
+                        this.playSound(SoundEvents.ENTITY_GHAST_SCREAM, 1, 2.0f);
+                    else
+                        angel.playSound(SoundEvents.ENTITY_GHAST_SCREAM, 1, 2.0f);
+                }
                 this.deactivate();
                 angel.deactivate();
+
                 return false;
             }
         }
@@ -435,7 +479,7 @@ public class WeepingAngelEntity extends HostileEntity {
                 }
 
                 if ((isActive || !NOT_WEARING_GAZE_DISGUISE_PREDICATE.test(entity)) &&
-                        this.isEntityLookingAtMe(entity, 0.5, false, this.getEyeY(), this.getY() + 0.5 * this.getScaleFactor(), (this.getEyeY() + this.getY()) / 2.0)) {
+                        this.isEntityLookingAtMe(entity, 1, false, this.getEyeY(), this.getY() + 0.5 * this.getScaleFactor(), (this.getEyeY() + this.getY()) / 2.0)) {
 
                     if (isActive) {
                         return false;
@@ -464,16 +508,17 @@ public class WeepingAngelEntity extends HostileEntity {
 
 
     public boolean isEntityLookingAtMe(LivingEntity entity, double d, boolean bl, double... checkedYs) {
-
-        Vec3d vec3d = entity.getRotationVec(1.0F).normalize();
+        Vec3d lookVec = entity.getRotationVec(1.0F).normalize();
 
         for (double e : checkedYs) {
-            Vec3d vec3d2 = new Vec3d(this.getX() - entity.getX(), e - entity.getEyeY(), this.getZ() - entity.getZ());
-            double f = vec3d2.length();
-            vec3d2 = vec3d2.normalize();
-            double g = vec3d.dotProduct(vec3d2);
-            if (g > 1.0 - d / (bl ? f : 1.0)
-                    && this.canSee(this)) {
+            Vec3d toAngel = new Vec3d(this.getX() - entity.getX(), e - entity.getEyeY(), this.getZ() - entity.getZ());
+            double distance = toAngel.length();
+            toAngel = toAngel.normalize();
+            double dot = lookVec.dotProduct(toAngel);
+
+            // Use a very tight threshold, making it nearly impossible to "not look" at the angel
+            // (e.g., require the player to look away by more than 179.9 degrees)
+            if (dot > Math.cos(Math.toRadians(90f)) && this.canSee(this)) {
                 return true;
             }
         }
@@ -508,13 +553,21 @@ public class WeepingAngelEntity extends HostileEntity {
 
     public void deactivate() {
         if (this.isActive()) {
-            //this.getBrain().forget(MemoryModuleType.ATTACK_TARGET);
             this.setActive(false);
         }
     }
 
     public AngelPose getRandomAngelPose() {
-        return AngelPose.values()[this.getRandom().nextInt(AngelPose.values().length)];
+        // 70% chance to return HIDING, 30% to return a random other pose - Loqor
+        if (this.getRandom().nextFloat() < 0.7f) {
+            return AngelPose.HIDING;
+        }
+        AngelPose[] poses = AngelPose.values();
+        AngelPose pose;
+        do {
+            pose = poses[this.getRandom().nextInt(poses.length)];
+        } while (pose == AngelPose.HIDING && poses.length > 1);
+        return pose;
     }
 
     public void setActive(boolean active) {
@@ -547,6 +600,10 @@ public class WeepingAngelEntity extends HostileEntity {
 
     public void setAngelPose(AngelPose pose) {
         this.dataTracker.set(ANGEL_POSE, pose);
+    }
+
+    public boolean isAngryEnough() {
+        return getBloodlust() >= 70;
     }
 
     class AngelLandPathNodeMaker extends LandPathNodeMaker {

@@ -12,6 +12,7 @@ import net.minecraft.util.Identifier;
 public class LWASounds {
 
     public static final SoundEvent HEART_BEAT = register("heart-beat");
+    public static final SoundEvent NECK_SNAP = register("neck-snap");
 
     public static void init() {
 

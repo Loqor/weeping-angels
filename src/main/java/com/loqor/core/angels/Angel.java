@@ -30,7 +30,6 @@ public record Angel(Identifier id, Identifier texture, RegistryKey<World> dimens
     public Identifier texture() {
         return this.texture;
     }
-
     @Override
     public RegistryKey<World> dimension() {
         return this.dimension;
@@ -49,5 +48,10 @@ public record Angel(Identifier id, Identifier texture, RegistryKey<World> dimens
         });
 
         return created.get();
+    }
+
+    public static Identifier getAngeredTexture(Identifier texture) {
+        String path = texture.getPath();
+        return new Identifier(texture.getNamespace(), path.substring(0, path.length() - 4) + "_angered.png");
     }
 }

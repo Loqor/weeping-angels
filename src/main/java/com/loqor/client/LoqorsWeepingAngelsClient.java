@@ -6,6 +6,7 @@ import com.loqor.core.angels.AngelRegistry;
 import dev.amble.lib.register.AmbleRegistries;
 import net.fabricmc.api.ClientModInitializer;
 import net.fabricmc.fabric.api.client.rendering.v1.EntityRendererRegistry;
+import net.fabricmc.fabric.api.client.rendering.v1.HudRenderCallback;
 
 public class LoqorsWeepingAngelsClient implements ClientModInitializer {
 	@Override
@@ -14,6 +15,7 @@ public class LoqorsWeepingAngelsClient implements ClientModInitializer {
 				AngelRegistry.getInstance()
 		);
 		registerEntityRenderers();
+		HudRenderCallback.EVENT.register(new AngelOverlay());
 	}
 
 	public void registerEntityRenderers() {

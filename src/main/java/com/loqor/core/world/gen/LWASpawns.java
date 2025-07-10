@@ -19,7 +19,7 @@ public class LWASpawns {
                 LWAEntities.WEEPING_ANGEL,
                 5,
                 1,
-                3);
+                1);
         BiomeModifications.addSpawn(BiomeSelectors.includeByKey(
                         BiomeKeys.PLAINS,
                         BiomeKeys.SWAMP,
@@ -46,13 +46,12 @@ public class LWASpawns {
                 SpawnGroup.MONSTER,
                 LWAEntities.WEEPING_ANGEL,
                 10,
-                2,
-                4);
+                1,
+                1);
         BiomeModifications.addSpawn(BiomeSelectors.includeByKey(
                         BiomeKeys.END_BARRENS,
                         BiomeKeys.END_HIGHLANDS,
-                        BiomeKeys.END_MIDLANDS,
-                        BiomeKeys.THE_END),
+                        BiomeKeys.END_MIDLANDS),
                 SpawnGroup.MONSTER,
                 LWAEntities.WEEPING_ANGEL,
                 1,

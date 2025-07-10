@@ -13,5 +13,5 @@ public class LWAEntities implements EntityContainer {
     public static final EntityType<WeepingAngelEntity> WEEPING_ANGEL = FabricEntityTypeBuilder.Mob.createMob()
             .entityFactory(WeepingAngelEntity::new).spawnGroup(SpawnGroup.MONSTER)
             .dimensions(EntityDimensions.fixed(0.6F, 1.99F)).spawnRestriction(SpawnRestriction.Location.ON_GROUND,
-                    Heightmap.Type.MOTION_BLOCKING_NO_LEAVES, WeepingAngelEntity::canSpawnInDark).fireImmune().spawnableFarFromPlayer().build();
+                    Heightmap.Type.MOTION_BLOCKING_NO_LEAVES, WeepingAngelEntity::canSpawnInDark).fireImmune().trackRangeChunks(16).build();
 }
