@@ -8,8 +8,9 @@ import com.loqor.core.util.StackUtil;
 import com.loqor.core.world.LWASounds;
 import com.mojang.serialization.Dynamic;
 import dev.amble.lib.util.ServerLifecycleHooks;
-import dev.drtheo.scheduler.api.Scheduler;
+import dev.drtheo.scheduler.api.common.Scheduler;
 import dev.drtheo.scheduler.api.TimeUnit;
+import dev.drtheo.scheduler.api.common.TaskStage;
 import net.minecraft.block.Block;
 import net.minecraft.block.BlockState;
 import net.minecraft.block.Blocks;
@@ -227,7 +228,7 @@ public class WeepingAngelEntity extends HostileEntity {
                             .sampleHeightmap(Heightmap.Type.MOTION_BLOCKING_NO_LEAVES, randomX & 15, randomZ & 15) + 1, randomZ);
                     Scheduler.get().runTaskLater(() ->
                                     player.playSound(SoundEvents.ITEM_CHORUS_FRUIT_TELEPORT, 1.0F, 2.0F),
-                            TimeUnit.SECONDS, 2);
+                            TaskStage.END_SERVER_TICK, TimeUnit.SECONDS, 2);
                 });
             } else {
                 player.damage(LWADamageTypes.of(target.getWorld(),

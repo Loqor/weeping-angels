@@ -2,8 +2,9 @@ package com.loqor.core.util;
 
 import com.loqor.core.entities.WeepingAngelEntity;
 import com.loqor.core.world.LWASounds;
-import dev.drtheo.scheduler.api.Scheduler;
+import dev.drtheo.scheduler.api.common.Scheduler;
 import dev.drtheo.scheduler.api.TimeUnit;
+import dev.drtheo.scheduler.api.common.TaskStage;
 import net.minecraft.server.network.ServerPlayerEntity;
 import net.minecraft.sound.SoundCategory;
 import net.minecraft.util.math.Box;
@@ -49,7 +50,7 @@ public class HeartbeatUtil {
         if (scheduler != null) {
             scheduler.runTaskLater(() -> {
                 world.playSound(null, player.getBlockPos(), LWASounds.HEART_BEAT, SoundCategory.PLAYERS, 0.25f, 0.95f);
-            }, TimeUnit.TICKS, 6);
+            }, TaskStage.END_SERVER_TICK, TimeUnit.TICKS, 6);
         }
     }
 
