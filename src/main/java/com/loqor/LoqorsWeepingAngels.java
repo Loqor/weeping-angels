@@ -38,12 +38,14 @@ public class LoqorsWeepingAngels implements ModInitializer {
 		LWAServerConfig.INSTANCE.load();
 		CONFIG = LWAServerConfig.INSTANCE.instance();
 
-
 		LOGGER.info("Loqor's Weeping Angels mod is initializing...");
 
 		// This registers the entity types and item classes
 		RegistryContainer.register(LWAEntities.class, MOD_ID);
 		RegistryContainer.register(LWAItems.class, MOD_ID);
+		AmbleRegistries.getInstance().registerAll(
+				AngelRegistry.getInstance()
+		);;
 		LWASounds.init();
 
 		// This is for spawning the Weeping Angels in different biomes
