@@ -30,7 +30,7 @@ public class WeepingAngelRenderer extends MobEntityRenderer<WeepingAngelEntity, 
                 matrixStack.peek().getPositionMatrix(), matrixStack.peek().getNormalMatrix(), 1.0f);
         RenderLayer originalLayer = model.getLayer(this.getTexture(mobEntity));
         VertexConsumer vC = vertexConsumerProvider.getBuffer(originalLayer);
-        VertexConsumerProvider provider = layer1 -> VertexConsumers.union(vertexConsumer, vC);
+        VertexConsumerProvider provider = layer1 -> mobEntity.getHealth() >= mobEntity.getMaxHealth() ? vC : VertexConsumers.union(vertexConsumer, vC);
         super.render(mobEntity, f, g, matrixStack, provider, i);
     }
 
