@@ -45,6 +45,7 @@ import net.minecraft.server.world.ServerWorld;
 import net.minecraft.sound.SoundCategory;
 import net.minecraft.sound.SoundEvent;
 import net.minecraft.sound.SoundEvents;
+import net.minecraft.state.property.BooleanProperty;
 import net.minecraft.util.Identifier;
 import net.minecraft.util.hit.HitResult;
 import net.minecraft.util.math.BlockPos;
@@ -124,10 +125,10 @@ public class WeepingAngelEntity extends HostileEntity {
         this.experiencePoints = 0;
     }
 
-    public static DefaultAttributeContainer getAngelAttributes() {
+    public static DefaultAttributeContainer.Builder getAngelAttributes() {
         return WeepingAngelEntity.createMobAttributes().add(EntityAttributes.GENERIC_MAX_HEALTH, 40.0D)
                 .add(EntityAttributes.GENERIC_MOVEMENT_SPEED, 0.4D)
-                .add(EntityAttributes.GENERIC_ATTACK_DAMAGE, 6.0D).build();
+                .add(EntityAttributes.GENERIC_ATTACK_DAMAGE, 6.0D);
     }
 
     @Override
@@ -139,6 +140,9 @@ public class WeepingAngelEntity extends HostileEntity {
         }
         if (this.getWorld().getMoonSize() > 0.9F) {
             base *= 1.25F;
+        }
+        if (this.getHealth() < this.getMaxHealth() * 0.3F) {
+            base *= 0.5F; // slow down if health is below 30%
         }
         return base;
     }
@@ -417,7 +421,12 @@ public class WeepingAngelEntity extends HostileEntity {
             int ticksLeft = entry.getValue();
 
             if (ticksLeft <= 0) {
-                this.getWorld().breakBlock(pos, true);
+                if (this.getWorld().getBlockState(pos).contains(BooleanProperty.of("lit"))) {
+                    BlockState state = this.getWorld().getBlockState(pos);
+                    this.getWorld().setBlockState(pos, state.with(BooleanProperty.of("lit"), !state.get(BooleanProperty.of("lit"))));
+                } else {
+                    this.getWorld().breakBlock(pos, true);
+                }
                 iterator.remove();
             } else {
                 // Flicker effect: spawn smoke every 5 ticks
