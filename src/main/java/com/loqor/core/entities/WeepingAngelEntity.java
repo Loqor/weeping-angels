@@ -334,6 +334,10 @@ public class WeepingAngelEntity extends HostileEntity {
     }
 
     @Override
+    public void takeKnockback(double strength, double x, double z) {
+    }
+
+    @Override
     public boolean isPersistent() {
         return true;
     }
