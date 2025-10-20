@@ -1,6 +1,7 @@
 package com.loqor.core.entities;
 
 import com.loqor.LoqorsWeepingAngels;
+import com.loqor.config.LWAServerConfig;
 import com.loqor.core.LWADamageTypes;
 import com.loqor.core.angels.Angel;
 import com.loqor.core.angels.AngelRegistry;
@@ -127,8 +128,8 @@ public class WeepingAngelEntity extends HostileEntity {
 
     public static DefaultAttributeContainer.Builder getAngelAttributes() {
         return WeepingAngelEntity.createMobAttributes().add(EntityAttributes.GENERIC_MAX_HEALTH, 40.0D)
-                .add(EntityAttributes.GENERIC_MOVEMENT_SPEED, 0.4D)
-                .add(EntityAttributes.GENERIC_ATTACK_DAMAGE, 6.0D);
+                .add(EntityAttributes.GENERIC_MOVEMENT_SPEED, LoqorsWeepingAngels.CONFIG.angelSpeed)
+                .add(EntityAttributes.GENERIC_ATTACK_DAMAGE, 8.0D);
     }
 
     @Override
@@ -188,8 +189,10 @@ public class WeepingAngelEntity extends HostileEntity {
         super.tick();
 
         if (!this.getWorld().isClient) {
-            extinguishNearbyLights();
-            processFlickeringLights();
+            if (ServerLifecycleHooks.get().getTicks() % 40 == 0) {
+                extinguishNearbyLights(); // <----- ts is so vibecoded </3 - Loqor
+                processFlickeringLights(); // <----- ts is so vibecoded </3 - Loqor
+            }
             decayBloodlust();
         }
     }
@@ -308,7 +311,17 @@ public class WeepingAngelEntity extends HostileEntity {
                 return super.damage(this.getWorld().getDamageSources().inWall(), amount);
             }
         }
-        return false;
+        // Silly little check - Loqor
+        if (damageSource.getSource() instanceof Entity &&
+                !(damageSource.getSource() instanceof PlayerEntity)) return false;
+
+        // RAHH I LOVE GUARDING IF STATEMENTS - Loqor
+        if (damageSource == this.getWorld().getDamageSources().lava()) return false;
+        if (damageSource == this.getWorld().getDamageSources().cactus()) return false;
+        if (damageSource == this.getWorld().getDamageSources().drown()) return false;
+        if (damageSource == this.getWorld().getDamageSources().onFire()) return false;
+
+        return super.damage(damageSource, amount);
     }
 
     @Override

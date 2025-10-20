@@ -28,5 +28,10 @@ public class LWAServerConfig {
     @AutoGen(category = CATEGORY)
     @IntField(min = 1)
     @CustomDescription("The spawn rate of angels in the world. Higher values mean they *might* spawn less/more. Minecraft code is a bit weird.")
-    @SerialEntry public int angelSpawnRate = 5;
+    @SerialEntry public int angelSpawnRate = 2;
+
+    @AutoGen(category = CATEGORY)
+    @DoubleField(min = 0.1D)
+    @CustomDescription("The speed of the angels. Default is 0.7D.")
+    @SerialEntry public double angelSpeed = 0.7d;
 }
