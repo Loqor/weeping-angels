@@ -132,6 +132,10 @@ public class WeepingAngelEntity extends HostileEntity {
                 .add(EntityAttributes.GENERIC_ATTACK_DAMAGE, 8.0D);
     }
 
+    public static boolean canSpawnInDark(EntityType<? extends HostileEntity> type, ServerWorldAccess world, SpawnReason reason, BlockPos pos, Random random) {
+        return world.getLightLevel(pos) < 2;
+    }
+
     @Override
     public float getMovementSpeed() {
         float base = super.getMovementSpeed();
@@ -507,22 +511,20 @@ public class WeepingAngelEntity extends HostileEntity {
                     return true;
                 }
 
-                if ((isActive || !NOT_WEARING_GAZE_DISGUISE_PREDICATE.test(entity)) &&
-                        this.isEntityLookingAtMe(entity, 1, false, this.getEyeY(), this.getY() + 0.5 * this.getScaleFactor(), (this.getEyeY() + this.getY()) / 2.0)) {
+                // Angel FREEZES (shouldBeNotStone = false) if any player is looking at it (regardless of pumpkin or active state)
+                boolean playerLookingAtAngel = this.isEntityLookingAtMe(entity, 1, false, this.getEyeY(), this.getY() + 0.5 * this.getScaleFactor(), (this.getEyeY() + this.getY()) / 2.0);
+                
+                if (playerLookingAtAngel) {
+                    // Player is looking at angel - angel must freeze
+                    return false;
+                }
 
-                    if (isActive) {
-                        return false;
+                // Only check for activation if player is NOT wearing pumpkin and is close
+                if (!NOT_WEARING_GAZE_DISGUISE_PREDICATE.test(entity) && entity.squaredDistanceTo(this) < 500.0) {
+                    if (entity instanceof PlayerEntity player) {
+                        this.activate(player);
                     }
-
-                    if (entity.squaredDistanceTo(this) < 500.0) {
-                        if (entity instanceof PlayerEntity player) {
-                            this.activate(player);
-                        }
-                        return false;
-                    } else {
-                        this.brain.remember(MemoryModuleType.ATTACK_TARGET, entity);
-                        this.deactivate();
-                    }
+                    return false;
                 }
             }
         }
