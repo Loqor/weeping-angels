@@ -2,7 +2,6 @@ package com.loqor.client.models;
 
 import com.loqor.core.entities.WeepingAngelEntity;
 import net.minecraft.client.model.*;
-import net.minecraft.client.render.OverlayTexture;
 import net.minecraft.client.render.VertexConsumer;
 import net.minecraft.client.render.entity.model.SinglePartEntityModel;
 import net.minecraft.client.util.math.MatrixStack;
@@ -61,7 +60,7 @@ public class AngelModel<T extends WeepingAngelEntity> extends SinglePartEntityMo
 
 	@Override
 	public void render(MatrixStack matrices, VertexConsumer vertexConsumer, int light, int overlay, float red, float green, float blue, float alpha) {
-		this.getPart().render(matrices, vertexConsumer, light, OverlayTexture.DEFAULT_UV, red, green, blue, alpha);
+		this.getPart().render(matrices, vertexConsumer, light, overlay, red, green, blue, alpha);
 	}
 
 	@Override

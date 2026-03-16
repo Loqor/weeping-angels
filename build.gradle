@@ -11,6 +11,16 @@ base {
 }
 
 repositories {
+
+	// AmbleKit
+	maven {
+		url "https://amblelabs.dev/maven"
+
+		content {
+			includeGroup "dev.amble"
+		}
+	}
+
 	maven {
 		url "https://jitpack.io"
 
@@ -20,7 +30,13 @@ repositories {
 	}
 
 	// Scheduler, Queue, MultiDim, AutoJSON
-	maven { url "https://theo.is-a.dev/maven-repo/" }
+	maven {
+		url "https://theo.is-a.dev/maven/"
+
+		content {
+			includeGroup "dev.drtheo"
+		}
+	}
 
 	// YACL
 	maven { url 'https://maven.isxander.dev/releases' }
@@ -80,13 +96,9 @@ dependencies {
 
 	modImplementation "net.fabricmc.fabric-api:fabric-api:${project.fabric_version}"
 
-	modImplementation("com.github.amblelabs:modkit:v${project.amblekit_version}") {
+	modApi("dev.amble:lib:${project.amblekit_version}") {
 		exclude(group: "net.fabricmc.fabric-api")
 	}
-	include(modImplementation("dev.drtheo:scheduler:${project.scheduler_version}")) {
-		exclude(group: "net.fabricmc.fabric-api")
-	}
-	
 }
 
 processResources {
