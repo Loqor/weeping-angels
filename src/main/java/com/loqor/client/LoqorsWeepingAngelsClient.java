@@ -6,12 +6,14 @@ import com.loqor.core.LWAEntities;
 import com.loqor.core.angels.AngelRegistry;
 import dev.amble.lib.register.AmbleRegistries;
 import net.fabricmc.api.ClientModInitializer;
+import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientTickEvents;
 import net.fabricmc.fabric.api.client.rendering.v1.EntityRendererRegistry;
 import net.fabricmc.fabric.api.client.rendering.v1.HudRenderCallback;
 
 public class LoqorsWeepingAngelsClient implements ClientModInitializer {
 
 	public static LWAClientConfig CONFIG;
+	private final ClientHeartbeatController heartbeatController = new ClientHeartbeatController();
 
 	@Override
 	public void onInitializeClient() {
@@ -23,6 +25,7 @@ public class LoqorsWeepingAngelsClient implements ClientModInitializer {
 		);
 		registerEntityRenderers();
 		HudRenderCallback.EVENT.register(new AngelOverlay());
+		ClientTickEvents.END_CLIENT_TICK.register(heartbeatController::tick);
 	}
 
 	public void registerEntityRenderers() {

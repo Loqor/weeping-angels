@@ -1,7 +1,7 @@
 package com.loqor.core.entities;
 
 import com.loqor.LoqorsWeepingAngels;
-import com.loqor.config.LWAServerConfig;
+import com.loqor.core.LWAItems;
 import com.loqor.core.LWADamageTypes;
 import com.loqor.core.angels.Angel;
 import com.loqor.core.angels.AngelRegistry;
@@ -28,6 +28,7 @@ import net.minecraft.entity.ai.pathing.*;
 import net.minecraft.entity.attribute.DefaultAttributeContainer;
 import net.minecraft.entity.attribute.EntityAttributes;
 import net.minecraft.entity.damage.DamageSource;
+import net.minecraft.entity.damage.DamageTypes;
 import net.minecraft.entity.data.DataTracker;
 import net.minecraft.entity.data.TrackedData;
 import net.minecraft.entity.data.TrackedDataHandler;
@@ -76,7 +77,7 @@ public class WeepingAngelEntity extends HostileEntity {
     public static final Predicate<LivingEntity> NOT_WEARING_GAZE_DISGUISE_PREDICATE = entity -> {
         if (entity instanceof PlayerEntity playerEntity) {
             ItemStack itemStack = playerEntity.getEquippedStack(EquipmentSlot.HEAD);
-            return itemStack.getItem().equals(Items.CARVED_PUMPKIN);
+            return !itemStack.getItem().equals(Items.CARVED_PUMPKIN);
         } else {
             return true;
         }
@@ -93,6 +94,9 @@ public class WeepingAngelEntity extends HostileEntity {
             Blocks.END_ROD,
             Blocks.SHROOMLIGHT
     );
+    private static final double ANGEL_TO_ANGEL_GAZE_MAX_DISTANCE_SQ = 36.0;
+    private static final double ANGEL_TO_ANGEL_GAZE_TOLERANCE = 0.2;
+    private static final double ANGEL_TO_ANGEL_GAZE_MAX_ANGLE_DEGREES = 10.0;
     private final Map<BlockPos, Integer> flickeringLights = new HashMap<>();
     private int extinguishCooldown = 100;
 
@@ -124,6 +128,11 @@ public class WeepingAngelEntity extends HostileEntity {
         mobNav.setCanEnterOpenDoors(true);
         mobNav.setCanPathThroughDoors(true);
         this.experiencePoints = 0;
+    }
+
+    @Override
+    public ItemStack getPickBlockStack() {
+        return new ItemStack(LWAItems.ANGEL_SPAWNER_ITEM);
     }
 
     public static DefaultAttributeContainer.Builder getAngelAttributes() {
@@ -309,23 +318,20 @@ public class WeepingAngelEntity extends HostileEntity {
 
     @Override
     public boolean damage(DamageSource damageSource, float amount) {
-        if (damageSource.getSource() instanceof PlayerEntity player) {
+        // Allow command/death-admin style kills and void kills.
+        if (damageSource.isOf(DamageTypes.GENERIC_KILL) || damageSource.isOf(DamageTypes.OUT_OF_WORLD)) {
+            return super.damage(damageSource, amount);
+        }
+
+        // Angels can only be damaged by players using pickaxes.
+        if (damageSource.getAttacker() instanceof PlayerEntity player) {
             ItemStack stack = player.getMainHandStack();
-            if (stack.getItem() instanceof PickaxeItem || amount > 50000) {
-                return super.damage(this.getWorld().getDamageSources().inWall(), amount);
+            if (stack.getItem() instanceof PickaxeItem) {
+                return super.damage(damageSource, amount);
             }
         }
-        // Silly little check - Loqor
-        if (damageSource.getSource() instanceof Entity &&
-                !(damageSource.getSource() instanceof PlayerEntity)) return false;
 
-        // RAHH I LOVE GUARDING IF STATEMENTS - Loqor
-        if (damageSource == this.getWorld().getDamageSources().lava()) return false;
-        if (damageSource == this.getWorld().getDamageSources().cactus()) return false;
-        if (damageSource == this.getWorld().getDamageSources().drown()) return false;
-        if (damageSource == this.getWorld().getDamageSources().onFire()) return false;
-
-        return super.damage(damageSource, amount);
+        return false;
     }
 
     @Override
@@ -465,11 +471,12 @@ public class WeepingAngelEntity extends HostileEntity {
     }
 
     public boolean shouldBeNotStone() {
-        TargetPredicate targetPredicate = TargetPredicate.createAttackable().setBaseMaxDistance(500.0);
+        int trackingRange = getEffectiveTrackingRangeBlocks(this.getWorld(), this.getType());
+        TargetPredicate targetPredicate = TargetPredicate.createAttackable().setBaseMaxDistance(trackingRange);
         List<PlayerEntity> players = this.getWorld().getTargets(PlayerEntity.class,
-                targetPredicate, this, this.getBoundingBox().expand(1000.0));
+                targetPredicate, this, this.getBoundingBox().expand(trackingRange));
         List<WeepingAngelEntity> angels = this.getWorld().getTargets(WeepingAngelEntity.class,
-                targetPredicate, this, this.getBoundingBox().expand(1000.0));
+                targetPredicate, this, this.getBoundingBox().expand(trackingRange));
         boolean isActive = this.isActive();
 
         if (players.isEmpty() && angels.isEmpty()) {
@@ -480,10 +487,14 @@ public class WeepingAngelEntity extends HostileEntity {
         }
 
         for (WeepingAngelEntity angel : angels) {
+            if (angel == this || this.squaredDistanceTo(angel) > ANGEL_TO_ANGEL_GAZE_MAX_DISTANCE_SQ) {
+                continue;
+            }
+
             if (this.canTarget(angel) && (!this.getAngelPose().equals(AngelPose.HIDING) ||
                     !angel.getAngelPose().equals(AngelPose.HIDING)) && (!this.getAngelPose().equals(AngelPose.RETREATING) || !angel.getAngelPose().equals(AngelPose.RETREATING)) && !this.isTeammate(angel) &&
-                    angel.isEntityLookingAtMe(this, 1, false, this.getEyeY(), this.getY() + 0.5 * this.getScaleFactor(), (this.getEyeY() + this.getY()) / 2.0) &&
-                    this.isEntityLookingAtMe(angel, 1, false, angel.getEyeY(), angel.getY() + 0.5 * angel.getScaleFactor(), (angel.getEyeY() + angel.getY()) / 2.0)) {
+                    angel.isEntityLookingAtMe(this, ANGEL_TO_ANGEL_GAZE_TOLERANCE, true, this.getEyeY(), this.getY() + 0.5 * this.getScaleFactor(), (this.getEyeY() + this.getY()) / 2.0) &&
+                    this.isEntityLookingAtMe(angel, ANGEL_TO_ANGEL_GAZE_TOLERANCE, true, angel.getEyeY(), angel.getY() + 0.5 * angel.getScaleFactor(), (angel.getEyeY() + angel.getY()) / 2.0)) {
                 if (this.isActive()) {
                     if (this.getRandom().nextBoolean())
                         this.playSound(SoundEvents.ENTITY_GHAST_SCREAM, 1, 2.0f);
@@ -497,36 +508,47 @@ public class WeepingAngelEntity extends HostileEntity {
             }
         }
 
-        for (LivingEntity entity : players) {
-            if (this.canTarget(entity) && !this.isTeammate(entity)) {
+        PlayerEntity pursuitTarget = null;
+        double closestDistanceSq = Double.MAX_VALUE;
 
-                BlockPos entityPos = entity.getBlockPos();
-                int lightLevel = this.getWorld().getLightLevel(entityPos);
-
-                boolean tooDarkToSee = lightLevel < 2;
-
-                if (tooDarkToSee) {
-                    this.brain.remember(MemoryModuleType.ATTACK_TARGET, entity);
-                    this.deactivate();
-                    return true;
-                }
-
-                // Angel FREEZES (shouldBeNotStone = false) if any player is looking at it (regardless of pumpkin or active state)
-                boolean playerLookingAtAngel = this.isEntityLookingAtMe(entity, 1, false, this.getEyeY(), this.getY() + 0.5 * this.getScaleFactor(), (this.getEyeY() + this.getY()) / 2.0);
-                
-                if (playerLookingAtAngel) {
-                    // Player is looking at angel - angel must freeze
-                    return false;
-                }
-
-                // Only check for activation if player is NOT wearing pumpkin and is close
-                if (!NOT_WEARING_GAZE_DISGUISE_PREDICATE.test(entity) && entity.squaredDistanceTo(this) < 500.0) {
-                    if (entity instanceof PlayerEntity player) {
-                        this.activate(player);
-                    }
-                    return false;
-                }
+        for (PlayerEntity player : players) {
+            if (!this.canTarget(player) || this.isTeammate(player)) {
+                continue;
             }
+
+            boolean notWearingDisguise = NOT_WEARING_GAZE_DISGUISE_PREDICATE.test(player);
+            if (!notWearingDisguise) {
+                continue;
+            }
+
+            boolean playerLookingAtAngel = notWearingDisguise && this.isEntityLookingAtMe(
+                    player,
+                    2.0,
+                    false,
+                    this.getEyeY(),
+                    this.getY() + 0.5 * this.getScaleFactor(),
+                    (this.getEyeY() + this.getY()) / 2.0
+            );
+
+            if (playerLookingAtAngel) {
+                // Any undisguised player with eye contact freezes the angel.
+                this.deactivate();
+                return false;
+            }
+
+            double distanceSq = player.squaredDistanceTo(this);
+            if (distanceSq < closestDistanceSq) {
+                closestDistanceSq = distanceSq;
+                pursuitTarget = player;
+            }
+        }
+
+        if (pursuitTarget != null) {
+            this.brain.remember(MemoryModuleType.ATTACK_TARGET, pursuitTarget);
+            if (closestDistanceSq < 500.0) {
+                this.activate(pursuitTarget);
+            }
+            return true;
         }
 
         if (isActive) {
@@ -539,17 +561,40 @@ public class WeepingAngelEntity extends HostileEntity {
 
 
     public boolean isEntityLookingAtMe(LivingEntity entity, double d, boolean bl, double... checkedYs) {
+        Vec3d eyePos = entity.getEyePos();
         Vec3d lookVec = entity.getRotationVec(1.0F).normalize();
+        int trackingRange = getEffectiveTrackingRangeBlocks(this.getWorld(), this.getType());
 
         for (double e : checkedYs) {
-            Vec3d toAngel = new Vec3d(this.getX() - entity.getX(), e - entity.getEyeY(), this.getZ() - entity.getZ());
+            Vec3d targetPos = new Vec3d(this.getX(), e, this.getZ());
+            Vec3d toAngel = targetPos.subtract(eyePos);
             double distance = toAngel.length();
+            if (distance <= 0.0001 || distance > trackingRange) {
+                continue;
+            }
             toAngel = toAngel.normalize();
             double dot = lookVec.dotProduct(toAngel);
 
-            // Use a very tight threshold, making it nearly impossible to "not look" at the angel
-            // (e.g., require the player to look away by more than 179.9 degrees)
-            if (dot > Math.cos(Math.toRadians(90f)) && this.canSee(this)) {
+            // Player checks keep a practical cap; angel-vs-angel checks are intentionally stricter.
+            double threshold;
+            if (bl) {
+                threshold = Math.max(Math.cos(Math.toRadians(ANGEL_TO_ANGEL_GAZE_MAX_ANGLE_DEGREES)), 1.0 - d / distance);
+            } else {
+                threshold = Math.min(Math.cos(Math.toRadians(LoqorsWeepingAngels.CONFIG.angelGazeAngleDegrees)), 1.0 - d / distance);
+            }
+            if (dot <= threshold) {
+                continue;
+            }
+
+            HitResult hitResult = this.getWorld().raycast(new RaycastContext(
+                    eyePos,
+                    targetPos,
+                    RaycastContext.ShapeType.COLLIDER,
+                    RaycastContext.FluidHandling.NONE,
+                    entity
+            ));
+
+            if (hitResult.getType() == HitResult.Type.MISS) {
                 return true;
             }
         }
@@ -561,12 +606,27 @@ public class WeepingAngelEntity extends HostileEntity {
         if (entity.getWorld() != this.getWorld()) {
             return false;
         } else {
+            int trackingRange = getEffectiveTrackingRangeBlocks(this.getWorld(), this.getType());
             Vec3d vec3d = new Vec3d(this.getX(), this.getEyeY(), this.getZ());
             Vec3d vec3d2 = new Vec3d(entity.getX(), entity.getEyeY(), entity.getZ());
-            return !(vec3d2.distanceTo(vec3d) > 128.0) && this.getWorld().raycast(new RaycastContext(vec3d, vec3d2,
+            return !(vec3d2.distanceTo(vec3d) > trackingRange) && this.getWorld().raycast(new RaycastContext(vec3d, vec3d2,
                     RaycastContext.ShapeType.VISUAL, RaycastContext.FluidHandling.NONE, this)).getType()
                     == HitResult.Type.MISS;
         }
+    }
+
+    private static int getEffectiveTrackingRangeBlocks(World world, EntityType<?> entityType) {
+        int trackingDistanceRaw = Math.max(2, entityType.getMaxTrackDistance());
+        int trackingRangeBlocks = trackingDistanceRaw > 32 ? trackingDistanceRaw : trackingDistanceRaw * 16;
+
+        if (world instanceof ServerWorld serverWorld && serverWorld.getServer() != null) {
+            int simulationDistanceChunks = serverWorld.getServer().getPlayerManager().getSimulationDistance();
+            int simulationRangeBlocks = Math.max(2, simulationDistanceChunks) * 16;
+            return Math.min(simulationRangeBlocks, trackingRangeBlocks);
+        }
+
+        // Fallback for non-server contexts.
+        return trackingRangeBlocks;
     }
 
     public void activate(PlayerEntity player) {

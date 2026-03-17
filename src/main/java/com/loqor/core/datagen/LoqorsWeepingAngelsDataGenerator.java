@@ -43,8 +43,13 @@ public class LoqorsWeepingAngelsDataGenerator implements DataGeneratorEntrypoint
 		provider.addTranslation("yacl3.config.loqors-weeping-angels:client.category.client", "Client Options");
 		provider.addTranslation("yacl3.config.loqors-weeping-angels:server.category.server", "Server Options");
 		provider.addTranslation("yacl3.config.loqors-weeping-angels:client.doScreenEffects", "Do Screen Effects");
+		provider.addTranslation("yacl3.config.loqors-weeping-angels:client.dangerEffectDistance", "Danger Effect Distance");
+		provider.addTranslation("yacl3.config.loqors-weeping-angels:client.dynamicEyeIntensity", "Dynamic Eye Intensity");
+		provider.addTranslation("yacl3.config.loqors-weeping-angels:client.eyeAnchor", "Eye Anchor");
+		provider.addTranslation("yacl3.config.loqors-weeping-angels:client.eyeScale", "Eye Scale");
 		provider.addTranslation("yacl3.config.loqors-weeping-angels:server.shouldDoHeartbeatTracking", "Do Heartbeat Tracking");
 		provider.addTranslation("yacl3.config.loqors-weeping-angels:server.angelSpawnRate", "Angel Spawn Rate");
+		provider.addTranslation("yacl3.config.loqors-weeping-angels:server.angelGazeAngleDegrees", "Angel Gaze Angle (Degrees)");
 		return provider;
 	}
 

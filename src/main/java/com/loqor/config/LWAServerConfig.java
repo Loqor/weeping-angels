@@ -34,4 +34,9 @@ public class LWAServerConfig {
     @DoubleField(min = 0.1D)
     @CustomDescription("The speed of the angels. Default is 0.7D.")
     @SerialEntry public double angelSpeed = 0.7d;
+
+    @AutoGen(category = CATEGORY)
+    @DoubleField(min = 1.0D, max = 90.0D)
+    @CustomDescription("Maximum angle in degrees within which a player's gaze freezes an angel. Lower = tighter cone, harder to freeze. Default is 30.")
+    @SerialEntry public double angelGazeAngleDegrees = 30.0D;
 }

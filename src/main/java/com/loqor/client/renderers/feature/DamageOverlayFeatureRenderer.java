@@ -43,7 +43,7 @@ public class DamageOverlayFeatureRenderer extends FeatureRenderer<WeepingAngelEn
         }
 
         VertexConsumer base = vertexConsumerProvider.getBuffer(
-                RenderLayer.getEntityTranslucent(getDamageTexture(entity)));
+                RenderLayer.getBlockBreaking(getDamageTexture(entity)));
         this.getContextModel().render(
                 matrixStack, new ScaledUvVertexConsumer(base, UV_SCALE),
                 light, OverlayTexture.DEFAULT_UV, 1.0f, 1.0f, 1.0f, 1.0f);
