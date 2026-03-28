@@ -20,7 +20,7 @@ import java.util.List;
 public class AngelOverlay implements HudRenderCallback {
 
     public static final Identifier BLINK = LoqorsWeepingAngels.id("textures/overlay/blink.png");
-    public static final Identifier DANGER = LoqorsWeepingAngels.id("textures/overlay/danger.png");
+    // public static final Identifier DANGER = LoqorsWeepingAngels.id("textures/overlay/danger.png");
     private static final float EYE_EFFECT_DISTANCE = 24.0f;
     private static final float EYE_SHAKE_DISTANCE = 6.0f;
     private static final float EYE_ICON_SIZE = 18.0f;
@@ -56,7 +56,7 @@ public class AngelOverlay implements HudRenderCallback {
                 1.0f
         );
         float eyeShakeProgress = MathHelper.clamp((EYE_SHAKE_DISTANCE - closestDistance) / EYE_SHAKE_DISTANCE, 0.0f, 1.0f);
-        float dangerProximityFactor = MathHelper.clamp(1.0f - (closestDistance / effectDistance), 0.0f, 1.0f);
+        // float dangerProximityFactor = MathHelper.clamp(1.0f - (closestDistance / effectDistance), 0.0f, 1.0f);
         boolean inEyeRange = closestDistance <= EYE_EFFECT_DISTANCE;
         boolean inDangerRange = closestDistance <= effectDistance;
         if (!inEyeRange && !inDangerRange) {
@@ -128,10 +128,12 @@ public class AngelOverlay implements HudRenderCallback {
         RenderSystem.enableBlend();
         RenderSystem.disableDepthTest();
         RenderSystem.depthMask(false);
-        if (inDangerRange) {
+
+        // FIXME: this doesn't work on servers, plus it's just kind of annoying. Maybe add a config option to disable the red screen effect and only show the eye icon later?
+        /*if (inDangerRange) {
             drawContext.setShaderColor(1, 0.25f, 0.25f, MathHelper.clamp(dangerProximityFactor, 0f, 0.8f));
             drawContext.drawTexture(DANGER, 0, 0, -90, 0.0f, 0.0f, i, j, i, j);
-        }
+        }*/
         RenderSystem.depthMask(true);
         RenderSystem.enableDepthTest();
         drawContext.setShaderColor(1.0f, 1.0f, 1.0f, 1f);

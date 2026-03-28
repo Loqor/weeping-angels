@@ -26,6 +26,11 @@ public class LWAServerConfig {
     @SerialEntry public boolean shouldDoHeartbeatTracking = true;
 
     @AutoGen(category = CATEGORY)
+    @Boolean(formatter = Boolean.Formatter.YES_NO, colored = true)
+    @CustomDescription("Enable or disable the Angel's teleporting of players, and force neck-snapping every time. Default is true.")
+    @SerialEntry public boolean shouldTeleportOnAttack = true;
+
+    @AutoGen(category = CATEGORY)
     @IntField(min = 1)
     @CustomDescription("The spawn rate of angels in the world. Higher values mean fewer spawns. Default 5 is recommended.")
     @SerialEntry public int angelSpawnRate = 5;

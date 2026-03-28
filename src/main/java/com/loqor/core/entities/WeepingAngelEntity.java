@@ -1,6 +1,7 @@
 package com.loqor.core.entities;
 
 import com.loqor.LoqorsWeepingAngels;
+import com.loqor.config.LWAServerConfig;
 import com.loqor.core.LWAItems;
 import com.loqor.core.LWADamageTypes;
 import com.loqor.core.angels.Angel;
@@ -197,7 +198,8 @@ public class WeepingAngelEntity extends HostileEntity {
                 super.onAttacking(target);
                 return;
             }
-            if (this.getWorld().getRandom().nextBoolean()) {
+            if (this.getWorld().getRandom().nextBoolean() &&
+                    LWAServerConfig.INSTANCE.instance().shouldTeleportOnAttack) {
                 MinecraftServer server = target.getWorld().getServer();
                 if (server == null) {
                     super.onAttacking(target);
