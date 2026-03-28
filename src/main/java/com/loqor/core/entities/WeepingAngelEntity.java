@@ -12,9 +12,7 @@ import dev.amble.lib.util.ServerLifecycleHooks;
 import dev.drtheo.scheduler.api.common.Scheduler;
 import dev.drtheo.scheduler.api.TimeUnit;
 import dev.drtheo.scheduler.api.common.TaskStage;
-import net.minecraft.block.Block;
 import net.minecraft.block.BlockState;
-import net.minecraft.block.Blocks;
 import net.minecraft.entity.*;
 import net.minecraft.entity.ai.TargetPredicate;
 import net.minecraft.entity.ai.brain.Brain;
@@ -41,20 +39,15 @@ import net.minecraft.item.ItemStack;
 import net.minecraft.item.Items;
 import net.minecraft.item.PickaxeItem;
 import net.minecraft.nbt.NbtCompound;
-import net.minecraft.particle.ParticleTypes;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.world.ServerWorld;
-import net.minecraft.sound.SoundCategory;
 import net.minecraft.sound.SoundEvent;
 import net.minecraft.sound.SoundEvents;
-import net.minecraft.state.property.BooleanProperty;
 import net.minecraft.util.Identifier;
 import net.minecraft.util.hit.HitResult;
 import net.minecraft.util.math.BlockPos;
-import net.minecraft.util.math.Box;
 import net.minecraft.util.math.ChunkSectionPos;
 import net.minecraft.util.math.Vec3d;
-import net.minecraft.util.math.random.Random;
 import net.minecraft.util.profiler.Profiler;
 import net.minecraft.world.*;
 import org.jetbrains.annotations.Nullable;
@@ -66,7 +59,6 @@ import java.util.stream.Stream;
 public class WeepingAngelEntity extends HostileEntity {
     private static final List<Item> ANGEL_DROPS = new ArrayList<>();
     private static final Predicate<Difficulty> DOOR_BREAK_DIFFICULTY_CHECKER = difficulty -> difficulty == Difficulty.HARD;
-    private boolean canBreakDoors;
     private static final TrackedData<Boolean> ISNOTSTONE = DataTracker.registerData(WeepingAngelEntity.class, TrackedDataHandlerRegistry.BOOLEAN);
     private static final TrackedData<Boolean> ACTIVE = DataTracker.registerData(WeepingAngelEntity.class, TrackedDataHandlerRegistry.BOOLEAN);
     private static final TrackedData<String> ANGEL = DataTracker.registerData(WeepingAngelEntity.class, TrackedDataHandlerRegistry.STRING);
@@ -82,23 +74,10 @@ public class WeepingAngelEntity extends HostileEntity {
             return true;
         }
     };
-    private static final Set<Block> LIGHT_SOURCES = Set.of(
-            Blocks.TORCH,
-            Blocks.WALL_TORCH,
-            Blocks.LANTERN,
-            Blocks.SOUL_TORCH,
-            Blocks.SOUL_LANTERN,
-            Blocks.GLOWSTONE,
-            Blocks.REDSTONE_LAMP,
-            Blocks.SEA_LANTERN,
-            Blocks.END_ROD,
-            Blocks.SHROOMLIGHT
-    );
+
     private static final double ANGEL_TO_ANGEL_GAZE_MAX_DISTANCE_SQ = 36.0;
     private static final double ANGEL_TO_ANGEL_GAZE_TOLERANCE = 0.2;
     private static final double ANGEL_TO_ANGEL_GAZE_MAX_ANGLE_DEGREES = 10.0;
-    private final Map<BlockPos, Integer> flickeringLights = new HashMap<>();
-    private int extinguishCooldown = 100;
 
     public WeepingAngelEntity(EntityType<? extends HostileEntity> entityType, World world) {
         super(entityType, world);
@@ -136,13 +115,7 @@ public class WeepingAngelEntity extends HostileEntity {
     }
 
     public static DefaultAttributeContainer.Builder getAngelAttributes() {
-        return WeepingAngelEntity.createMobAttributes().add(EntityAttributes.GENERIC_MAX_HEALTH, 40.0D)
-                .add(EntityAttributes.GENERIC_MOVEMENT_SPEED, LoqorsWeepingAngels.CONFIG.angelSpeed)
-                .add(EntityAttributes.GENERIC_ATTACK_DAMAGE, 8.0D);
-    }
-
-    public static boolean canSpawnInDark(EntityType<? extends HostileEntity> type, ServerWorldAccess world, SpawnReason reason, BlockPos pos, Random random) {
-        return world.getLightLevel(pos) < 2;
+        return WeepingAngelEntity.createMobAttributes().add(EntityAttributes.GENERIC_MAX_HEALTH, 40.0D).add(EntityAttributes.GENERIC_MOVEMENT_SPEED, LoqorsWeepingAngels.CONFIG.angelSpeed).add(EntityAttributes.GENERIC_ATTACK_DAMAGE, 8.0D);
     }
 
     @Override
@@ -171,20 +144,11 @@ public class WeepingAngelEntity extends HostileEntity {
     public void setAngelPerDimension(World world) {
         Stream<Angel> angelList = AngelRegistry.getInstance().toList().stream();
         if (world.getRegistryKey().equals(World.END)) {
-            this.setAngel(angelList
-                    .filter(angel -> angel.dimension().equals(World.END))
-                    .findAny()
-                    .orElse(AngelRegistry.ENDSTONE));
+            this.setAngel(angelList.filter(angel -> angel.dimension().equals(World.END)).findAny().orElse(AngelRegistry.ENDSTONE));
         } else if (world.getRegistryKey().equals(World.NETHER)) {
-            this.setAngel(angelList
-                    .filter(angel -> angel.dimension().equals(World.NETHER))
-                    .findAny()
-                    .orElse(AngelRegistry.BLACKSTONE));
+            this.setAngel(angelList.filter(angel -> angel.dimension().equals(World.NETHER)).findAny().orElse(AngelRegistry.BLACKSTONE));
         } else {
-            this.setAngel(angelList
-                    .filter(angel -> angel.dimension().equals(World.OVERWORLD))
-                    .findAny()
-                    .orElse(AngelRegistry.STONE));
+            this.setAngel(angelList.filter(angel -> angel.dimension().equals(World.OVERWORLD)).findAny().orElse(AngelRegistry.STONE));
         }
     }
 
@@ -203,10 +167,8 @@ public class WeepingAngelEntity extends HostileEntity {
 
         if (!this.getWorld().isClient) {
             if (ServerLifecycleHooks.get().getTicks() % 40 == 0) {
-                extinguishNearbyLights(); // <----- ts is so vibecoded </3 - Loqor
-                processFlickeringLights(); // <----- ts is so vibecoded </3 - Loqor
+                decayBloodlust();
             }
-            decayBloodlust();
         }
     }
 
@@ -244,15 +206,11 @@ public class WeepingAngelEntity extends HostileEntity {
                 server.execute(() -> {
                     int randomX = player.getBlockX() + this.getWorld().getRandom().nextBetween(-1500, 1500);
                     int randomZ = player.getBlockZ() + this.getWorld().getRandom().nextBetween(-1500, 1500);
-                    player.teleport(randomX, player.getWorld().getChunk(ChunkSectionPos.getSectionCoord(randomX), ChunkSectionPos.getSectionCoord(randomZ))
-                            .sampleHeightmap(Heightmap.Type.MOTION_BLOCKING_NO_LEAVES, randomX & 15, randomZ & 15) + 1, randomZ);
-                    Scheduler.get().runTaskLater(() ->
-                                    player.playSound(SoundEvents.ITEM_CHORUS_FRUIT_TELEPORT, 1.0F, 2.0F),
-                            TaskStage.END_SERVER_TICK, TimeUnit.SECONDS, 2);
+                    player.teleport(randomX, player.getWorld().getChunk(ChunkSectionPos.getSectionCoord(randomX), ChunkSectionPos.getSectionCoord(randomZ)).sampleHeightmap(Heightmap.Type.MOTION_BLOCKING_NO_LEAVES, randomX & 15, randomZ & 15) + 1, randomZ);
+                    Scheduler.get().runTaskLater(() -> player.playSound(SoundEvents.ITEM_CHORUS_FRUIT_TELEPORT, 1.0F, 2.0F), TaskStage.END_SERVER_TICK, TimeUnit.SECONDS, 2);
                 });
             } else {
-                player.damage(LWADamageTypes.of(target.getWorld(),
-                        LWADamageTypes.ANGEL_NECK_SNAP), Math.max(20.0F, Float.MAX_VALUE * (getBloodlust() / 100.0F)));
+                player.damage(LWADamageTypes.of(target.getWorld(), LWADamageTypes.ANGEL_NECK_SNAP), Math.max(20.0F, Float.MAX_VALUE * (getBloodlust() / 100.0F)));
                 this.playSound(LWASounds.NECK_SNAP, 1.0F, 1F);
             }
         }
@@ -303,7 +261,7 @@ public class WeepingAngelEntity extends HostileEntity {
 
     @Override
     public Brain<WeepingAngelEntity> getBrain() {
-        return (Brain<WeepingAngelEntity>)super.getBrain();
+        return (Brain<WeepingAngelEntity>) super.getBrain();
     }
 
     @Override
@@ -338,7 +296,7 @@ public class WeepingAngelEntity extends HostileEntity {
     protected void mobTick() {
         Profiler profiler = this.getWorld().getProfiler();
         profiler.push("angelBrain");
-        this.getBrain().tick((ServerWorld)this.getWorld(), this);
+        this.getBrain().tick((ServerWorld) this.getWorld(), this);
         profiler.pop();
         WeepingAngelBrain.updateActivities(this);
     }
@@ -360,9 +318,7 @@ public class WeepingAngelEntity extends HostileEntity {
     @Override
     public void tickMovement() {
         if (!this.getWorld().isClient) {
-            if (this.isAiDisabled() ||
-                    !this.getAngelPose().equals(AngelPose.MOVING))
-                this.stopMovement();
+            if (this.isAiDisabled() || !this.getAngelPose().equals(AngelPose.MOVING)) this.stopMovement();
             boolean bl = this.dataTracker.get(ISNOTSTONE);
             boolean bl2 = this.shouldBeNotStone();
             if (bl2 != bl) {
@@ -423,60 +379,11 @@ public class WeepingAngelEntity extends HostileEntity {
         return !this.isNotStone();
     }
 
-    private void extinguishNearbyLights() {
-        Box area = new Box(getBlockPos()).expand(5);
-        BlockPos min = new BlockPos((int) area.minX, (int) area.minY, (int) area.minZ);
-        BlockPos max = new BlockPos((int) area.maxX, (int) area.maxY, (int) area.maxZ);
-
-        for (BlockPos pos : BlockPos.iterate(min, max)) {
-            Block block = this.getWorld().getBlockState(pos).getBlock();
-            if (LIGHT_SOURCES.contains(block) && !flickeringLights.containsKey(pos)) {
-
-                flickeringLights.put(pos.toImmutable(), 40);
-                this.getWorld().playSound(null, pos, SoundEvents.BLOCK_FIRE_EXTINGUISH, SoundCategory.BLOCKS, 0.5F, 1.0F);
-                break;
-            }
-        }
-
-    }
-
-    private void processFlickeringLights() {
-        Iterator<Map.Entry<BlockPos, Integer>> iterator = flickeringLights.entrySet().iterator();
-        while (iterator.hasNext()) {
-            Map.Entry<BlockPos, Integer> entry = iterator.next();
-            BlockPos pos = entry.getKey();
-            int ticksLeft = entry.getValue();
-
-            if (ticksLeft <= 0) {
-                if (this.getWorld().getBlockState(pos).contains(BooleanProperty.of("lit"))) {
-                    BlockState state = this.getWorld().getBlockState(pos);
-                    this.getWorld().setBlockState(pos, state.with(BooleanProperty.of("lit"), !state.get(BooleanProperty.of("lit"))));
-                } else {
-                    this.getWorld().breakBlock(pos, true);
-                }
-                iterator.remove();
-            } else {
-                // Flicker effect: spawn smoke every 5 ticks
-                if (ticksLeft % 5 == 0 && this.getWorld() instanceof ServerWorld serverWorld) {
-                    serverWorld.spawnParticles(
-                            ParticleTypes.SMOKE,
-                            pos.getX() + 0.5, pos.getY() + 0.7, pos.getZ() + 0.5,
-                            2, 0.1, 0.1, 0.1, 0.01
-                    );
-                }
-
-                entry.setValue(ticksLeft - 1);
-            }
-        }
-    }
-
     public boolean shouldBeNotStone() {
         int trackingRange = getEffectiveTrackingRangeBlocks(this.getWorld(), this.getType());
         TargetPredicate targetPredicate = TargetPredicate.createAttackable().setBaseMaxDistance(trackingRange);
-        List<PlayerEntity> players = this.getWorld().getTargets(PlayerEntity.class,
-                targetPredicate, this, this.getBoundingBox().expand(trackingRange));
-        List<WeepingAngelEntity> angels = this.getWorld().getTargets(WeepingAngelEntity.class,
-                targetPredicate, this, this.getBoundingBox().expand(trackingRange));
+        List<PlayerEntity> players = this.getWorld().getTargets(PlayerEntity.class, targetPredicate, this, this.getBoundingBox().expand(trackingRange));
+        List<WeepingAngelEntity> angels = this.getWorld().getTargets(WeepingAngelEntity.class, targetPredicate, this, this.getBoundingBox().expand(trackingRange));
         boolean isActive = this.isActive();
 
         if (players.isEmpty() && angels.isEmpty()) {
@@ -491,15 +398,10 @@ public class WeepingAngelEntity extends HostileEntity {
                 continue;
             }
 
-            if (this.canTarget(angel) && (!this.getAngelPose().equals(AngelPose.HIDING) ||
-                    !angel.getAngelPose().equals(AngelPose.HIDING)) && (!this.getAngelPose().equals(AngelPose.RETREATING) || !angel.getAngelPose().equals(AngelPose.RETREATING)) && !this.isTeammate(angel) &&
-                    angel.isEntityLookingAtMe(this, ANGEL_TO_ANGEL_GAZE_TOLERANCE, true, this.getEyeY(), this.getY() + 0.5 * this.getScaleFactor(), (this.getEyeY() + this.getY()) / 2.0) &&
-                    this.isEntityLookingAtMe(angel, ANGEL_TO_ANGEL_GAZE_TOLERANCE, true, angel.getEyeY(), angel.getY() + 0.5 * angel.getScaleFactor(), (angel.getEyeY() + angel.getY()) / 2.0)) {
+            if (this.canTarget(angel) && (!this.getAngelPose().equals(AngelPose.HIDING) || !angel.getAngelPose().equals(AngelPose.HIDING)) && (!this.getAngelPose().equals(AngelPose.RETREATING) || !angel.getAngelPose().equals(AngelPose.RETREATING)) && !this.isTeammate(angel) && angel.isEntityLookingAtMe(this, ANGEL_TO_ANGEL_GAZE_TOLERANCE, true, this.getEyeY(), this.getY() + 0.5 * this.getScaleFactor(), (this.getEyeY() + this.getY()) / 2.0) && this.isEntityLookingAtMe(angel, ANGEL_TO_ANGEL_GAZE_TOLERANCE, true, angel.getEyeY(), angel.getY() + 0.5 * angel.getScaleFactor(), (angel.getEyeY() + angel.getY()) / 2.0)) {
                 if (this.isActive()) {
-                    if (this.getRandom().nextBoolean())
-                        this.playSound(SoundEvents.ENTITY_GHAST_SCREAM, 1, 2.0f);
-                    else
-                        angel.playSound(SoundEvents.ENTITY_GHAST_SCREAM, 1, 2.0f);
+                    if (this.getRandom().nextBoolean()) this.playSound(SoundEvents.ENTITY_GHAST_SCREAM, 1, 2.0f);
+                    else angel.playSound(SoundEvents.ENTITY_GHAST_SCREAM, 1, 2.0f);
                 }
                 this.deactivate();
                 angel.deactivate();
@@ -517,18 +419,12 @@ public class WeepingAngelEntity extends HostileEntity {
             }
 
             boolean notWearingDisguise = NOT_WEARING_GAZE_DISGUISE_PREDICATE.test(player);
+
             if (!notWearingDisguise) {
                 continue;
             }
 
-            boolean playerLookingAtAngel = notWearingDisguise && this.isEntityLookingAtMe(
-                    player,
-                    2.0,
-                    false,
-                    this.getEyeY(),
-                    this.getY() + 0.5 * this.getScaleFactor(),
-                    (this.getEyeY() + this.getY()) / 2.0
-            );
+            boolean playerLookingAtAngel = this.isEntityLookingAtMe(player, 2.0, false, this.getEyeY(), this.getY() + 0.5 * this.getScaleFactor(), (this.getEyeY() + this.getY()) / 2.0);
 
             if (playerLookingAtAngel) {
                 // Any undisguised player with eye contact freezes the angel.
@@ -559,7 +455,6 @@ public class WeepingAngelEntity extends HostileEntity {
     }
 
 
-
     public boolean isEntityLookingAtMe(LivingEntity entity, double d, boolean bl, double... checkedYs) {
         Vec3d eyePos = entity.getEyePos();
         Vec3d lookVec = entity.getRotationVec(1.0F).normalize();
@@ -586,13 +481,7 @@ public class WeepingAngelEntity extends HostileEntity {
                 continue;
             }
 
-            HitResult hitResult = this.getWorld().raycast(new RaycastContext(
-                    eyePos,
-                    targetPos,
-                    RaycastContext.ShapeType.COLLIDER,
-                    RaycastContext.FluidHandling.NONE,
-                    entity
-            ));
+            HitResult hitResult = this.getWorld().raycast(new RaycastContext(eyePos, targetPos, RaycastContext.ShapeType.COLLIDER, RaycastContext.FluidHandling.NONE, entity));
 
             if (hitResult.getType() == HitResult.Type.MISS) {
                 return true;
@@ -609,9 +498,7 @@ public class WeepingAngelEntity extends HostileEntity {
             int trackingRange = getEffectiveTrackingRangeBlocks(this.getWorld(), this.getType());
             Vec3d vec3d = new Vec3d(this.getX(), this.getEyeY(), this.getZ());
             Vec3d vec3d2 = new Vec3d(entity.getX(), entity.getEyeY(), entity.getZ());
-            return !(vec3d2.distanceTo(vec3d) > trackingRange) && this.getWorld().raycast(new RaycastContext(vec3d, vec3d2,
-                    RaycastContext.ShapeType.VISUAL, RaycastContext.FluidHandling.NONE, this)).getType()
-                    == HitResult.Type.MISS;
+            return !(vec3d2.distanceTo(vec3d) > trackingRange) && this.getWorld().raycast(new RaycastContext(vec3d, vec3d2, RaycastContext.ShapeType.VISUAL, RaycastContext.FluidHandling.NONE, this)).getType() == HitResult.Type.MISS;
         }
     }
 
@@ -805,8 +692,7 @@ public class WeepingAngelEntity extends HostileEntity {
 
         @Override
         public boolean canStart() {
-            return WeepingAngelEntity.this.isNotStone() &&
-                    WeepingAngelEntity.this.random.nextInt(toGoalTicks(10)) == 0 && super.canStart();
+            return WeepingAngelEntity.this.isNotStone() && WeepingAngelEntity.this.random.nextInt(toGoalTicks(10)) == 0 && super.canStart();
         }
 
         @Override
@@ -817,12 +703,6 @@ public class WeepingAngelEntity extends HostileEntity {
     }
 
     public enum AngelPose {
-        DEFAULT,
-        MOVING,
-        HIDING,
-        ATTACKING,
-        ANGRY,
-        AFRAID,
-        RETREATING;
+        DEFAULT, MOVING, HIDING, ATTACKING, ANGRY, AFRAID, RETREATING;
     }
 }
